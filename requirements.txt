@@ -21,3 +21,16 @@ flask-cors>=4.0.0
 pytest>=7.4.0
 jupyter>=1.0.0
 ipykernel>=6.25.0
+
+# Streamlit and Gemini
+streamlit
+python-dotenv
+google-generativeai
+beautifulsoup4
+moviepy
+
+# Wan 2.2
+diffusers
+transformers
+accelerate
+torch

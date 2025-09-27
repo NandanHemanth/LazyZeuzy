@@ -278,3 +278,28 @@ if __name__ == '__main__':
 ```
 
 This system represents a breakthrough in adaptive accessibility technology, providing real-time insights that can transform how we approach inclusive education and human-computer interaction.
+
+## Gemini Playground
+
+This is a Streamlit application that uses the Gemini API to perform various tasks on a document or a website.
+
+### Setup
+
+1.  **Install dependencies:**
+    ```bash
+    pip install -r requirements.txt
+    ```
+2.  **Set up your API key:**
+    - Create a file named `.env` in the root of the project.
+    - Add your Gemini API key to the `.env` file like this:
+      ```
+      GEMINI_API_KEY="YOUR_API_KEY_HERE"
+      ```
+
+### Running the App
+
+```bash
+streamlit run streamlit_app.py
+```
+
+This will open the Gemini Playground in your web browser.
