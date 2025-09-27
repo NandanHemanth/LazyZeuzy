@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(python:*)",
-      "Bash(copy:*)"
+      "Bash(copy:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []
