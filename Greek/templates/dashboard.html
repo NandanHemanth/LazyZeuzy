@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Athena's Wisdom - Divine Learning Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/goddess.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="dashboard-page">
+    <!-- Greek Temple Background -->
+    <div class="temple-background">
+        <div class="marble-columns"></div>
+        <div class="golden-particles"></div>
+    </div>
+
+    <!-- Main Dashboard Container -->
+    <div class="dashboard-container">
+        <!-- Left Sidebar - Sources -->
+        <div class="sources-panel">
+            <div class="panel-header">
+                <h2><i class="fas fa-scroll"></i> Sources</h2>
+                <div class="panel-actions">
+                    <button class="action-btn" title="Collapse"><i class="fas fa-compress-alt"></i></button>
+                </div>
+            </div>
+
+            <div class="panel-content">
+                <div class="source-controls">
+                    <button class="control-btn primary" onclick="window.location.href='/upload'">
+                        <i class="fas fa-plus"></i> Add
+                    </button>
+                    <button class="control-btn secondary">
+                        <i class="fas fa-search"></i> Discover
+                    </button>
+                </div>
+
+                <div class="source-selection">
+                    <label class="select-all">
+                        <input type="checkbox" id="selectAllSources">
+                        <span class="checkmark"></span>
+                        Select all sources
+                    </label>
+                </div>
+
+                <div class="sources-list" id="sourcesList">
+                    {% if files %}
+                        {% for file in files %}
+                        <div class="source-item">
+                            <div class="source-icon">
+                                <i class="fas fa-file-{{ 'pdf' if file.type == 'pdf' else 'alt' }}"></i>
+                            </div>
+                            <div class="source-info">
+                                <span class="source-name">{{ file.original_name }}</span>
+                                <span class="source-meta">{{ file.type.upper() }}</span>
+                            </div>
+                            <input type="checkbox" class="source-checkbox">
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                    <div class="empty-sources">
+                        <i class="fas fa-scroll"></i>
+                        <p>No sacred texts yet</p>
+                        <button onclick="window.location.href='/upload'" class="divine-btn">Upload First Source</button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Center Panel - Chat -->
+        <div class="chat-panel">
+            <div class="panel-header">
+                <h2><i class="fas fa-comments"></i> Chat</h2>
+                <div class="panel-actions">
+                    <button class="action-btn" title="Settings"><i class="fas fa-cog"></i></button>
+                </div>
+            </div>
+
+            <div class="chat-content">
+                <div class="chat-messages" id="chatMessages">
+                    {% if chat_history %}
+                        {% for message in chat_history %}
+                        <div class="message {{ message.type }}">
+                            <div class="message-avatar">
+                                {% if message.type == 'user' %}
+                                <i class="fas fa-user"></i>
+                                {% else %}
+                                <i class="fas fa-crown"></i>
+                                {% endif %}
+                            </div>
+                            <div class="message-content">
+                                <div class="message-text">{{ message.content }}</div>
+                                <div class="message-time">{{ message.timestamp }}</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                    <div class="welcome-message">
+                        <div class="athena-avatar">
+                            <i class="fas fa-crown"></i>
+                        </div>
+                        <h3>Generative AI for Research and Science Roundtable</h3>
+                        <p class="source-count">{{ files|length }} source{{ 's' if files|length != 1 else '' }}</p>
+                        <div class="welcome-text">
+                            <p>Greetings, seeker of wisdom! I am Athena, goddess of knowledge and learning. I have reviewed your sacred sources and am ready to illuminate the path of understanding.</p>
+
+                            <p>Ask me anything about your sources, and I shall provide divine insight drawn from the depths of wisdom.</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="chat-input-area">
+                    <div class="input-container">
+                        <input type="text" id="chatInput" placeholder="Start typing..." class="chat-input">
+                        <div class="input-info">
+                            <span class="source-indicator">{{ files|length }} source{{ 's' if files|length != 1 else '' }}</span>
+                        </div>
+                        <button class="send-btn" onclick="sendMessage()">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+
+                    <div class="suggested-prompts">
+                        <button class="prompt-btn" onclick="usePrompt(this)">
+                            How will generative AI fundamentally alter the structure of the global workforce?
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Sidebar - Studio -->
+        <div class="studio-panel">
+            <div class="panel-header">
+                <h2><i class="fas fa-palette"></i> Studio</h2>
+                <div class="panel-actions">
+                    <button class="action-btn" title="Collapse"><i class="fas fa-compress-alt"></i></button>
+                </div>
+            </div>
+
+            <div class="panel-content">
+                <div class="studio-tools">
+                    <!-- Audio Overview -->
+                    <div class="tool-card" onclick="generateContent('audio')">
+                        <div class="tool-icon audio">
+                            <i class="fas fa-music"></i>
+                        </div>
+                        <div class="tool-info">
+                            <h4>Audio Overview</h4>
+                            <button class="tool-btn"><i class="fas fa-edit"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- Video Overview -->
+                    <div class="tool-card" onclick="generateContent('video')">
+                        <div class="tool-icon video">
+                            <i class="fas fa-video"></i>
+                        </div>
+                        <div class="tool-info">
+                            <h4>Video Overview</h4>
+                            <button class="tool-btn"><i class="fas fa-edit"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- Mind Map -->
+                    <div class="tool-card" onclick="generateContent('mindmap')">
+                        <div class="tool-icon mindmap">
+                            <i class="fas fa-project-diagram"></i>
+                        </div>
+                        <div class="tool-info">
+                            <h4>Mind Map</h4>
+                            <button class="tool-btn"><i class="fas fa-edit"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- Reports -->
+                    <div class="tool-card" onclick="generateContent('reports')">
+                        <div class="tool-icon reports">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div class="tool-info">
+                            <h4>Reports</h4>
+                            <button class="tool-btn"><i class="fas fa-edit"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- Flashcards -->
+                    <div class="tool-card" onclick="generateContent('flashcards')">
+                        <div class="tool-icon flashcards">
+                            <i class="fas fa-layer-group"></i>
+                        </div>
+                        <div class="tool-info">
+                            <h4>Flashcards</h4>
+                            <button class="tool-btn"><i class="fas fa-edit"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- Quiz -->
+                    <div class="tool-card" onclick="generateContent('quiz')">
+                        <div class="tool-icon quiz">
+                            <i class="fas fa-question-circle"></i>
+                        </div>
+                        <div class="tool-info">
+                            <h4>Quiz</h4>
+                            <button class="tool-btn"><i class="fas fa-edit"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Creations -->
+                <div class="recent-creations">
+                    <div class="creation-item">
+                        <div class="creation-icon audio">
+                            <i class="fas fa-music"></i>
+                        </div>
+                        <div class="creation-info">
+                            <h5>$4.4 Trillion...</h5>
+                            <p>1 source • 1h ago</p>
+                        </div>
+                        <div class="creation-actions">
+                            <button class="action-icon"><i class="fas fa-play"></i></button>
+                            <button class="action-icon"><i class="fas fa-share"></i></button>
+                            <button class="action-icon"><i class="fas fa-ellipsis-v"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="creation-item">
+                        <div class="creation-icon quiz">
+                            <i class="fas fa-question-circle"></i>
+                        </div>
+                        <div class="creation-info">
+                            <h5>AI Quiz</h5>
+                            <p>1 source • 1h ago</p>
+                        </div>
+                        <div class="creation-actions">
+                            <button class="action-icon"><i class="fas fa-play"></i></button>
+                            <button class="action-icon"><i class="fas fa-share"></i></button>
+                            <button class="action-icon"><i class="fas fa-ellipsis-v"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="creation-item">
+                        <div class="creation-icon flashcards">
+                            <i class="fas fa-layer-group"></i>
+                        </div>
+                        <div class="creation-info">
+                            <h5>AI Flashcards</h5>
+                            <p>1 source • 1h ago</p>
+                        </div>
+                        <div class="creation-actions">
+                            <button class="action-icon"><i class="fas fa-play"></i></button>
+                            <button class="action-icon"><i class="fas fa-edit"></i></button>
+                            <button class="add-note-btn">Add note</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>
