@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
     loadSources();
     initializeChatInput();
     initializeSourceSelection();
+    initializeSlideshow();
 });
 
 function initializeDashboard() {
@@ -417,3 +418,50 @@ document.addEventListener('keydown', function(e) {
         window.location.href = '/upload';
     }
 });
+
+// Slideshow functionality
+function initializeSlideshow() {
+    const slideshowContainer = document.getElementById('headerSlideshow');
+    if (!slideshowContainer) return;
+
+    // Array of image filenames
+    const images = [
+        'greek1.png', 'greek2.png', 'greek3.png', 'greek4.png',
+        'greek5.png', 'greek6.png', 'greek7.png', 'greek8.png',
+        'greek9.png', 'greek10.png', 'greek11.png', 'greek12.png'
+    ];
+
+    let currentImageIndex = 0;
+
+    // Shuffle images array for random order
+    const shuffledImages = [...images].sort(() => Math.random() - 0.5);
+
+    // Create img elements
+    shuffledImages.forEach((imageName, index) => {
+        const img = document.createElement('img');
+        img.src = `/static/images/${imageName}`;
+        img.alt = `Greek themed image ${index + 1}`;
+        img.loading = 'lazy';
+
+        // First image starts as active
+        if (index === 0) {
+            img.classList.add('active');
+        }
+
+        slideshowContainer.appendChild(img);
+    });
+
+    // Start slideshow rotation
+    setInterval(() => {
+        const images = slideshowContainer.querySelectorAll('img');
+
+        // Remove active class from current image
+        images[currentImageIndex].classList.remove('active');
+
+        // Move to next image
+        currentImageIndex = (currentImageIndex + 1) % images.length;
+
+        // Add active class to new image
+        images[currentImageIndex].classList.add('active');
+    }, 4000); // Change image every 4 seconds
+}

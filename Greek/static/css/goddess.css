@@ -66,6 +66,63 @@ body {
     overflow-x: hidden;
 }
 
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+        /* Constellation Patterns */
+        radial-gradient(2px 2px at 20% 30%, #FFD700, transparent),
+        radial-gradient(2px 2px at 40% 70%, #D4AF37, transparent),
+        radial-gradient(1px 1px at 90% 40%, #FFD700, transparent),
+        radial-gradient(1px 1px at 50% 60%, #D4AF37, transparent),
+        radial-gradient(2px 2px at 80% 10%, #FFD700, transparent),
+        radial-gradient(1px 1px at 10% 80%, #D4AF37, transparent),
+        radial-gradient(2px 2px at 70% 90%, #FFD700, transparent),
+        radial-gradient(1px 1px at 30% 20%, #D4AF37, transparent),
+        /* Constellation Lines */
+        linear-gradient(45deg, transparent 49%, rgba(255, 215, 0, 0.1) 50%, transparent 51%),
+        linear-gradient(-45deg, transparent 49%, rgba(212, 175, 55, 0.1) 50%, transparent 51%);
+    background-size:
+        550px 550px,
+        450px 450px,
+        300px 300px,
+        400px 400px,
+        600px 600px,
+        350px 350px,
+        500px 500px,
+        250px 250px,
+        200px 200px,
+        300px 300px;
+    background-position:
+        0 0,
+        100px 100px,
+        200px 200px,
+        300px 50px,
+        150px 300px,
+        50px 150px,
+        250px 250px,
+        400px 100px,
+        0 0,
+        100px 100px;
+    animation: constellations 120s linear infinite;
+    opacity: 0.3;
+    z-index: 1;
+    pointer-events: none;
+}
+
+@keyframes constellations {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
 /* Enhanced Temple Background - Greek Architecture */
 .temple-background {
     position: fixed;
@@ -561,12 +618,50 @@ body {
     padding-top: 120px;
 }
 
-/* Divine Temple Header */
+/* Divine Temple Header with Slideshow */
 .temple-header {
     padding: 2rem 0;
     text-align: center;
     position: relative;
     margin-bottom: 2rem;
+    height: 300px;
+    overflow: hidden;
+    border-radius: 15px;
+    box-shadow: var(--divine-shadow);
+}
+
+.header-slideshow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+.header-slideshow img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 1.5s ease-in-out;
+}
+
+.header-slideshow img.active {
+    opacity: 0.7;
+}
+
+.header-overlay {
+    position: relative;
+    z-index: 2;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(26, 22, 17, 0.8) 0%, rgba(44, 24, 16, 0.6) 50%, rgba(26, 22, 17, 0.8) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .temple-columns {
@@ -606,6 +701,19 @@ body {
     margin-bottom: 1rem;
     text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
     animation: title-glow 4s ease-in-out infinite alternate;
+}
+
+.floating-title {
+    animation: float 6s ease-in-out infinite, title-glow 4s ease-in-out infinite alternate !important;
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
 }
 
 .temple-title p {
