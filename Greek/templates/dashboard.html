@@ -6,12 +6,43 @@
     <title>Athena's Wisdom - Divine Learning Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/goddess.css') }}">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
 </head>
 <body class="dashboard-page">
     <!-- Greek Temple Background -->
     <div class="temple-background">
         <div class="marble-columns"></div>
         <div class="golden-particles"></div>
+    </div>
+
+    <!-- Divine Temple Header -->
+    <div class="temple-header">
+        <div class="temple-columns">
+            <div class="column left-column">
+                <lottie-player
+                    src="https://lottie.host/c18da578-1b25-444c-bfe5-e7b0c8a64b5b/SHRFLf8LNd.json"
+                    background="transparent"
+                    speed="0.5"
+                    style="width: 80px; height: 80px;"
+                    loop
+                    autoplay>
+                </lottie-player>
+            </div>
+            <div class="temple-title">
+                <h1>⚡ ATHENA'S DIVINE WISDOM ⚡</h1>
+                <p>Where knowledge ascends to Mount Olympus</p>
+            </div>
+            <div class="column right-column">
+                <lottie-player
+                    src="https://lottie.host/c18da578-1b25-444c-bfe5-e7b0c8a64b5b/SHRFLf8LNd.json"
+                    background="transparent"
+                    speed="0.5"
+                    style="width: 80px; height: 80px;"
+                    loop
+                    autoplay>
+                </lottie-player>
+            </div>
+        </div>
     </div>
 
     <!-- Main Dashboard Container -->
@@ -260,6 +291,7 @@
         </div>
     </div>
 
+    <script src="{{ url_for('static', filename='js/divine-animations.js') }}"></script>
     <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 </body>
 </html>

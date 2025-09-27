@@ -1,13 +1,18 @@
-# Athena's Wisdom - Greek Goddess Learning Platform
+# ⚡ Athena's Wisdom - Divine Greek Goddess Learning Platform ⚡
 
-A divine learning platform inspired by ancient Greek mythology, featuring a beautiful Greek goddess theme with marble columns, golden accents, and divine imagery.
+A revolutionary learning platform inspired by ancient Greek mythology, featuring an immersive Greek goddess theme with **Lottie animations**, **divine interactions**, **marble columns**, **golden particle effects**, and **authentic Greek design elements**.
 
 ## Features
 
-### 🏛️ **Divine Interface**
-- Greek goddess theme with marble textures and golden particles
-- Responsive design inspired by ancient Greek temples
-- Beautiful animations and divine visual effects
+### 🏛️ **Enhanced Divine Interface**
+- **Authentic Greek goddess theme** with marble textures and golden particles
+- **Lottie animations** from LottieFiles for smooth, professional animations
+- **Responsive design** inspired by ancient Greek temples and architecture
+- **Advanced particle system** with floating divine orbs and sparkle trails
+- **Interactive hover effects** with divine auras and floating tooltips
+- **Smooth transitions** and **cubic-bezier animations** throughout
+- **Greek key patterns** and **column animations** for authenticity
+- **Parallax scrolling effects** for immersive experience
 
 ### 📚 **Upload Sacred Sources**
 - Drag and drop file upload

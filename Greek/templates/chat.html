@@ -6,6 +6,7 @@
     <title>Divine Chat - Athena's Wisdom</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/goddess.css') }}">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
 </head>
 <body class="chat-page">
     <!-- Greek Temple Background -->
@@ -42,11 +43,42 @@
     <div class="chat-container">
         <div class="chat-header">
             <div class="athena-avatar large">
-                <i class="fas fa-crown"></i>
+                <lottie-player
+                    src="https://lottie.host/7e5b8a54-5a5f-4b9b-be97-2c6b3d7f3a8d/QcYm8yDlGP.json"
+                    background="transparent"
+                    speed="0.8"
+                    style="width: 100px; height: 100px;"
+                    loop
+                    autoplay>
+                </lottie-player>
             </div>
             <div class="chat-title">
                 <h1>Athena's Divine Wisdom</h1>
                 <p>Ask me anything about your sacred sources</p>
+                <div class="divine-stats">
+                    <span class="stat">
+                        <lottie-player
+                            src="https://lottie.host/03ffe4b0-0d96-4d1a-be7e-5e8c3f8e7c94/LNS3DlLQYL.json"
+                            background="transparent"
+                            speed="1"
+                            style="width: 20px; height: 20px;"
+                            loop
+                            autoplay>
+                        </lottie-player>
+                        {{ files|length if files else 0 }} Sacred Sources
+                    </span>
+                    <span class="stat">
+                        <lottie-player
+                            src="https://lottie.host/c2b1e4f5-3d8a-4a6b-9e5f-8a7b6c9d0e1f/DlQYLNS3.json"
+                            background="transparent"
+                            speed="1"
+                            style="width: 20px; height: 20px;"
+                            loop
+                            autoplay>
+                        </lottie-player>
+                        Divine Insights Ready
+                    </span>
+                </div>
             </div>
         </div>
 
@@ -129,6 +161,7 @@
         </div>
     </div>
 
+    <script src="{{ url_for('static', filename='js/divine-animations.js') }}"></script>
     <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
 </body>
 </html>

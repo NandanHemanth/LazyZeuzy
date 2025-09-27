@@ -6,6 +6,7 @@
     <title>Upload Sacred Sources - Athena's Wisdom</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/goddess.css') }}">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
 </head>
 <body class="upload-page">
     <!-- Greek Temple Background -->
@@ -49,12 +50,22 @@
         <div class="upload-zone" id="uploadZone">
             <div class="upload-content">
                 <div class="upload-icon">
-                    <i class="fas fa-cloud-upload-alt"></i>
+                    <lottie-player
+                        src="https://lottie.host/4f3c39bb-bb53-4e6e-ad7a-99e9b83a2de4/Vq4NGlLHEd.json"
+                        background="transparent"
+                        speed="1"
+                        style="width: 120px; height: 120px;"
+                        loop
+                        autoplay>
+                    </lottie-player>
                 </div>
-                <h2>Upload sources</h2>
+                <h2>Upload Sacred Sources</h2>
                 <p>Drag and drop or <span class="upload-link" onclick="document.getElementById('fileInput').click()">choose file to upload</span></p>
                 <div class="file-types">
-                    <span>Supported file types: PDF, .txt, Markdown, Audio (e.g. mp3)</span>
+                    <span>Blessed file types: PDF, TXT, Markdown, Audio (MP3), Images</span>
+                </div>
+                <div class="divine-blessing">
+                    <span>✨ May Athena bless your knowledge ✨</span>
                 </div>
             </div>
             <input type="file" id="fileInput" multiple accept=".pdf,.txt,.md,.mp3,.wav,.pptx,.png,.jpg,.jpeg" style="display: none;">
@@ -164,6 +175,7 @@
         </div>
     </div>
 
+    <script src="{{ url_for('static', filename='js/divine-animations.js') }}"></script>
     <script src="{{ url_for('static', filename='js/upload.js') }}"></script>
 </body>
 </html>
