@@ -5,6 +5,8 @@ import os
 import PyPDF2
 import docx
 from io import BytesIO
+import requests
+from streamlit_lottie import st_lottie
 
 load_dotenv()
 
@@ -50,11 +52,45 @@ def process_uploaded_file(uploaded_file):
             return None
     return None
 
-def main():
-    st.set_page_config(page_title="Document Chat with Gemini", page_icon="🤖", layout="wide")
+def load_lottieurl(url: str):
+    r = requests.get(url)
+    if r.status_code != 200:
+        return None
+    return r.json()
 
-    st.title("🤖 Document Chat with Gemini")
-    st.subheader("Upload a document and ask questions about it!")
+def main():
+    st.set_page_config(page_title="LazyZeszy", page_icon="🤖", layout="wide")
+
+    # Consolidated CSS
+    st.markdown("""
+        <style>
+            /* Button styling */
+            .stButton>button {
+                border-radius: 8px;
+                width: 100%;
+                margin-bottom: 8px;
+            }
+
+            /* Sidebar Lottie positioning */
+            section[data-testid="stSidebar"] {
+                position: relative;
+            }
+            .lottie-bottom {
+                position: absolute;
+                bottom: 20px;
+                left: 0;
+                right: 0;
+            }
+
+            /* Un-fix the chat input */
+            .st-emotion-cache-1xw8zd0.e1d2x3se3 {
+                position: static;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+
+    st.title("⚡ LazyZeuzy")
+    st.subheader("Impart knowledge from Mount Olympus!")
 
     model = setup_gemini()
     if not model:
@@ -71,6 +107,14 @@ def main():
         if uploaded_file:
             st.success(f"✅ Uploaded: {uploaded_file.name}")
 
+        with st.container():
+            st.markdown('<div class="lottie-bottom">', unsafe_allow_html=True)
+            lottie_url = "https://lottie.host/386084db-01c7-46ea-94ee-a61f78d0d5b6/1BeZ2kxvLW.json"
+            lottie_json = load_lottieurl(lottie_url)
+            if lottie_json:
+                st_lottie(lottie_json, height=200)
+            st.markdown('</div>', unsafe_allow_html=True)
+
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
@@ -84,41 +128,59 @@ def main():
                 st.session_state.document_text = document_text
                 st.success("Document processed successfully! You can now ask questions about it.")
 
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+    col1, col2 = st.columns([2, 1])
 
-    if prompt := st.chat_input("Ask a question about your document..."):
-        if not st.session_state.document_text:
-            st.warning("Please upload a document first!")
-            return
+    with col1:
+        # Display chat messages from history
+        for message in st.session_state.messages:
+            with st.chat_message(message["role"]):
+                st.markdown(message["content"])
 
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
+        # Chat input logic
+        if prompt := st.chat_input("Ask a question about your document..."):
+            if not st.session_state.document_text:
+                st.warning("Please upload a document first!")
+            else:
+                st.session_state.messages.append({"role": "user", "content": prompt})
+                
+                with st.spinner("Thinking..."):
+                    try:
+                        full_prompt = f"""
+                        Based on the following document content, please answer the user's question:
 
-        with st.chat_message("assistant"):
-            with st.spinner("Thinking..."):
-                try:
-                    full_prompt = f"""
-                    Based on the following document content, please answer the user's question:
+                        Document Content:
+                        {st.session_state.document_text}
 
-                    Document Content:
-                    {st.session_state.document_text}
+                        User Question: {prompt}
 
-                    User Question: {prompt}
+                        Please provide a helpful and accurate answer based only on the information in the document. If the answer cannot be found in the document, please say so.
+                        """
 
-                    Please provide a helpful and accurate answer based only on the information in the document. If the answer cannot be found in the document, please say so.
-                    """
+                        response = model.generate_content(full_prompt)
+                        answer = response.text
+                        st.session_state.messages.append({"role": "assistant", "content": answer})
+                    except Exception as e:
+                        st.error(f"Error generating response: {str(e)}")
+                
+                st.rerun()
 
-                    response = model.generate_content(full_prompt)
-                    answer = response.text
+    with col2:
+        st.write("### Actions")
+        b_col1, b_col2 = st.columns(2, gap="small")
+        with b_col1:
+            st.button("Action 1")
+            st.button("Action 2")
+            st.button("Action 3")
+        with b_col2:
+            st.button("Action 4")
+            st.button("Action 5")
+            st.button("Action 6")
+        st.button("Full Width Action")
 
-                    st.markdown(answer)
-                    st.session_state.messages.append({"role": "assistant", "content": answer})
-
-                except Exception as e:
-                    st.error(f"Error generating response: {str(e)}")
+        lottie_url_2 = "https://lottie.host/3ae4f794-0101-499b-888f-3743146d410e/ntRtMqOUj0.json"
+        lottie_json_2 = load_lottieurl(lottie_url_2)
+        if lottie_json_2:
+            st_lottie(lottie_json_2, height=200)
 
 if __name__ == "__main__":
     main()
