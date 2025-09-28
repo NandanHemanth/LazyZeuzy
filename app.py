@@ -17,7 +17,7 @@ def setup_gemini():
         return None
 
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel('gemini-2.5-flash')
+    model = genai.GenerativeModel('gemini-2.5-pro')
     return model
 
 def extract_text_from_pdf(pdf_file):
@@ -126,7 +126,36 @@ def main():
             document_text = process_uploaded_file(uploaded_file)
             if document_text:
                 st.session_state.document_text = document_text
-                st.success("Document processed successfully! You can now ask questions about it.")
+
+                # Generate automatic summary
+                with st.spinner("Generating document summary..."):
+                    try:
+                        summary_prompt = f"""
+                        Please provide a detailed summary of the following document. Include:
+                        1. Main topic/subject
+                        2. Key points and themes
+                        3. Important details or findings
+                        4. Structure and organization
+                        5. Any notable conclusions or recommendations
+
+                        Document Content:
+                        {document_text}
+
+                        Please make the summary comprehensive but concise.
+                        """
+
+                        response = model.generate_content(summary_prompt)
+                        summary = response.text
+
+                        # Add summary as assistant message
+                        st.session_state.messages.append({
+                            "role": "assistant",
+                            "content": f"📄 **Document Summary for {uploaded_file.name}:**\n\n{summary}"
+                        })
+                    except Exception as e:
+                        st.error(f"Error generating summary: {str(e)}")
+
+                st.rerun()
 
     col1, col2 = st.columns([2, 1])
 
