@@ -63,12 +63,24 @@
 
             <div class="panel-content">
                 <div class="source-controls">
-                    <button class="control-btn primary" onclick="window.location.href='/upload'">
+                    <button class="control-btn primary" onclick="triggerFileUpload()">
                         <i class="fas fa-plus"></i> Add
                     </button>
                     <button class="control-btn secondary">
                         <i class="fas fa-search"></i> Discover
                     </button>
+                </div>
+
+                <!-- Hidden file input -->
+                <input type="file" id="fileInput" multiple accept=".pdf,.txt,.md,.mp3,.wav,.png,.jpg,.jpeg,.pptx" style="display: none;">
+
+                <!-- Upload Zone (initially hidden) -->
+                <div id="uploadZone" class="upload-zone" style="display: none;">
+                    <div class="upload-content">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <h3>Drop files here or click to browse</h3>
+                        <p>Supported: PDF, TXT, MD, Audio, Images, PowerPoint</p>
+                    </div>
                 </div>
 
                 <div class="source-selection">
@@ -97,7 +109,7 @@
                     <div class="empty-sources">
                         <i class="fas fa-scroll"></i>
                         <p>No sacred texts yet</p>
-                        <button onclick="window.location.href='/upload'" class="divine-btn">Upload First Source</button>
+                        <button onclick="triggerFileUpload()" class="divine-btn">Upload First Source</button>
                     </div>
                     {% endif %}
                 </div>

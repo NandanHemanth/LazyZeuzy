@@ -7,9 +7,11 @@ let selectedSources = [];
 document.addEventListener('DOMContentLoaded', function() {
     initializeDashboard();
     loadSources();
+    loadChatHistory();
     initializeChatInput();
     initializeSourceSelection();
     initializeSlideshow();
+    initializeFileUpload();
 });
 
 function initializeDashboard() {
@@ -85,7 +87,7 @@ async function sendMessage() {
     }
 }
 
-function addMessageToChat(type, content) {
+function addMessageToChat(type, content, scrollToBottom = true, timestamp = null) {
     const chatMessages = document.getElementById('chatMessages');
     const welcomeMessage = chatMessages.querySelector('.welcome-message');
 
@@ -101,25 +103,36 @@ function addMessageToChat(type, content) {
         ? '<i class="fas fa-user"></i>'
         : '<i class="fas fa-crown"></i>';
 
+    // Format content for markdown-like styling
+    const formattedContent = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                   .replace(/\n/g, '<br>');
+
+    const messageTime = timestamp ? formatTime(timestamp) : formatTime(new Date());
+
     messageElement.innerHTML = `
         <div class="message-avatar">
             ${avatar}
         </div>
         <div class="message-content">
-            <div class="message-text">${content}</div>
-            <div class="message-time">${formatTime(new Date())}</div>
+            <div class="message-text">${formattedContent}</div>
+            <div class="message-time">${messageTime}</div>
         </div>
     `;
 
     chatMessages.appendChild(messageElement);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
 
-    // Add to history
-    chatHistory.push({
-        type: type,
-        content: content,
-        timestamp: new Date().toISOString()
-    });
+    if (scrollToBottom) {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    // Add to local history only if it's a new message (not from server history)
+    if (!timestamp) {
+        chatHistory.push({
+            type: type,
+            content: content,
+            timestamp: new Date().toISOString()
+        });
+    }
 }
 
 function showTypingIndicator() {
@@ -158,6 +171,33 @@ async function loadSources() {
         }
     } catch (error) {
         console.error('Error loading sources:', error);
+    }
+}
+
+async function loadChatHistory() {
+    try {
+        const response = await fetch('/api/chat-history');
+        const result = await response.json();
+
+        if (result.chat_history && result.chat_history.length > 0) {
+            const chatMessages = document.getElementById('chatMessages');
+            const welcomeMessage = chatMessages.querySelector('.welcome-message');
+
+            // Remove welcome message if it exists
+            if (welcomeMessage) {
+                welcomeMessage.remove();
+            }
+
+            // Clear existing messages
+            chatMessages.innerHTML = '';
+
+            // Add all messages from history
+            result.chat_history.forEach(message => {
+                addMessageToChat(message.type, message.content, false, new Date(message.timestamp));
+            });
+        }
+    } catch (error) {
+        console.error('Error loading chat history:', error);
     }
 }
 
@@ -415,9 +455,120 @@ document.addEventListener('keydown', function(e) {
     // Quick upload with Ctrl+U
     if (e.ctrlKey && e.key === 'u') {
         e.preventDefault();
-        window.location.href = '/upload';
+        triggerFileUpload();
     }
 });
+
+// File Upload Functions
+function initializeFileUpload() {
+    const fileInput = document.getElementById('fileInput');
+    const uploadZone = document.getElementById('uploadZone');
+
+    if (fileInput) {
+        fileInput.addEventListener('change', function(e) {
+            handleFiles(e.target.files);
+        });
+    }
+
+    if (uploadZone) {
+        // Drag and drop functionality
+        uploadZone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            uploadZone.classList.add('drag-over');
+        });
+
+        uploadZone.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            uploadZone.classList.remove('drag-over');
+        });
+
+        uploadZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            uploadZone.classList.remove('drag-over');
+            const files = e.dataTransfer.files;
+            handleFiles(files);
+        });
+
+        uploadZone.addEventListener('click', function() {
+            fileInput.click();
+        });
+    }
+}
+
+function triggerFileUpload() {
+    const fileInput = document.getElementById('fileInput');
+    if (fileInput) {
+        fileInput.click();
+    }
+}
+
+function handleFiles(files) {
+    Array.from(files).forEach(file => {
+        if (isAllowedFile(file)) {
+            uploadFile(file);
+        } else {
+            showNotification(`File type ${file.type} is not blessed by the gods`, 'error');
+        }
+    });
+}
+
+function isAllowedFile(file) {
+    const allowedTypes = [
+        'application/pdf',
+        'text/plain',
+        'text/markdown',
+        'audio/mpeg',
+        'audio/wav',
+        'audio/mp3',
+        'image/png',
+        'image/jpeg',
+        'image/jpg',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+    ];
+
+    return allowedTypes.includes(file.type) ||
+           file.name.endsWith('.md') ||
+           file.name.endsWith('.txt') ||
+           file.name.endsWith('.pptx');
+}
+
+async function uploadFile(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        showUploadProgress(file.name);
+
+        const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            showNotification(result.message, 'success');
+            // Refresh sources and chat history
+            await loadSources();
+            await loadChatHistory();
+        } else {
+            showNotification(result.error || 'Upload failed', 'error');
+        }
+    } catch (error) {
+        console.error('Upload error:', error);
+        showNotification('Upload failed - The gods are displeased', 'error');
+    } finally {
+        hideUploadProgress();
+    }
+}
+
+function showUploadProgress(filename) {
+    showNotification(`Uploading ${filename}...`, 'info');
+}
+
+function hideUploadProgress() {
+    // Progress is handled by notifications
+}
 
 // Slideshow functionality
 function initializeSlideshow() {
