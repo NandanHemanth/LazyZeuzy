@@ -318,6 +318,272 @@ def show_flashcards_popup():
         st.session_state.show_flashcards = False
         st.rerun()
 
+def generate_quiz():
+    """Generate quiz questions from document content using Gemini"""
+    if not st.session_state.document_text:
+        st.warning("Please upload a document first!")
+        return False
+
+    try:
+        model = setup_gemini()
+        if not model:
+            return False
+
+        quiz_prompt = f"""
+        Create 10 quiz questions based on the following document content.
+        Format each question as a JSON object with multiple choice options.
+        Make questions that test comprehension, analysis, and key concepts.
+
+        Document Content:
+        {st.session_state.document_text[:3000]}...
+
+        Respond with ONLY a valid JSON array of quiz objects like this:
+        [
+            {{
+                "question": "What is the main concept discussed in the document?",
+                "options": ["Option A", "Option B", "Option C", "Option D"],
+                "correct": 0,
+                "explanation": "Detailed explanation of why this answer is correct."
+            }}
+        ]
+
+        Requirements:
+        - Generate exactly 10 questions
+        - Use "correct" as index (0, 1, 2, or 3) for the correct answer
+        - Make questions challenging but fair
+        - Provide clear explanations for correct answers
+        """
+
+        response = model.generate_content(quiz_prompt)
+        quiz_text = response.text
+
+        # Clean up the response to extract JSON
+        try:
+            # Remove any markdown formatting
+            if "```json" in quiz_text:
+                quiz_text = quiz_text.split("```json")[1].split("```")[0]
+            elif "```" in quiz_text:
+                quiz_text = quiz_text.split("```")[1].split("```")[0]
+
+            quiz_data = json.loads(quiz_text.strip())
+
+            # Store quiz in session state
+            st.session_state.quiz_questions = quiz_data
+            st.session_state.current_question = 0
+            st.session_state.user_answers = {}
+            st.session_state.show_quiz = True
+            st.session_state.quiz_completed = False
+            st.session_state.show_quiz_results = False
+
+            # Add success message to chat
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": f"🧠 **Quiz Generated!**\n\nI've created {len(quiz_data)} challenging questions based on your document. Test your knowledge with the interactive quiz!"
+            })
+
+            return True
+
+        except json.JSONDecodeError:
+            st.error("Error parsing quiz questions. Please try again.")
+            return False
+
+    except Exception as e:
+        st.error(f"Error generating quiz: {str(e)}")
+        return False
+
+@st.dialog("🧠 Knowledge Quiz")
+def show_quiz_popup():
+    """Display interactive quiz in a popup dialog"""
+    if 'quiz_questions' not in st.session_state or not st.session_state.quiz_questions:
+        st.error("No quiz questions available!")
+        return
+
+    questions = st.session_state.quiz_questions
+    current_q = st.session_state.get('current_question', 0)
+    user_answers = st.session_state.get('user_answers', {})
+    show_results = st.session_state.get('show_quiz_results', False)
+
+    # Custom CSS for quiz styling
+    st.markdown("""
+    <style>
+    .quiz-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    .question-card {
+        background: #f8f9fa;
+        border-left: 4px solid #667eea;
+        padding: 20px;
+        border-radius: 8px;
+        margin: 15px 0;
+    }
+    .option-button {
+        margin: 5px 0;
+        width: 100%;
+    }
+    .quiz-progress {
+        background: #e9ecef;
+        height: 10px;
+        border-radius: 5px;
+        margin: 10px 0;
+    }
+    .quiz-results {
+        background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        margin: 20px 0;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    if show_results:
+        # Show Results
+        correct_answers = sum(1 for i, answer in user_answers.items()
+                             if answer == questions[i]['correct'])
+        total_questions = len(questions)
+        score_percentage = (correct_answers / total_questions) * 100
+
+        st.markdown(f"""
+        <div class="quiz-results">
+            <h2>🎉 Quiz Complete!</h2>
+            <h3>Your Score: {correct_answers}/{total_questions} ({score_percentage:.1f}%)</h3>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Performance feedback
+        if score_percentage >= 80:
+            st.success("🌟 Excellent! You have a strong understanding of the material.")
+        elif score_percentage >= 60:
+            st.info("👍 Good job! Review the explanations for questions you missed.")
+        else:
+            st.warning("📚 Keep studying! Review the material and try again.")
+
+        # Show detailed results
+        st.subheader("📋 Detailed Results")
+
+        for i, question in enumerate(questions):
+            user_answer = user_answers.get(i, -1)
+            correct_answer = question['correct']
+            is_correct = user_answer == correct_answer
+
+            with st.expander(f"Question {i+1}: {'✅' if is_correct else '❌'}", expanded=False):
+                st.write(f"**Question:** {question['question']}")
+                st.write(f"**Your Answer:** {question['options'][user_answer] if user_answer != -1 else 'Not answered'}")
+                st.write(f"**Correct Answer:** {question['options'][correct_answer]}")
+                st.write(f"**Explanation:** {question['explanation']}")
+
+        # Action buttons
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            if st.button("🔄 Retake Quiz", use_container_width=True):
+                st.session_state.current_question = 0
+                st.session_state.user_answers = {}
+                st.session_state.show_quiz_results = False
+                st.rerun()
+
+        with col2:
+            if st.button("📊 New Quiz", use_container_width=True):
+                if generate_quiz():
+                    st.rerun()
+
+        with col3:
+            if st.button("✅ Done", use_container_width=True):
+                st.session_state.show_quiz = False
+                st.rerun()
+
+    else:
+        # Show Quiz Questions
+        st.markdown(f"""
+        <div class="quiz-header">
+            <h3>Question {current_q + 1} of {len(questions)}</h3>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Progress bar
+        progress = (current_q + 1) / len(questions)
+        st.progress(progress)
+
+        # Current question
+        question = questions[current_q]
+
+        st.markdown(f"""
+        <div class="question-card">
+            <h4>{question['question']}</h4>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Answer options
+        selected_option = st.radio(
+            "Choose your answer:",
+            options=range(len(question['options'])),
+            format_func=lambda x: f"{chr(65+x)}) {question['options'][x]}",
+            key=f"quiz_q_{current_q}",
+            index=user_answers.get(current_q, 0) if current_q in user_answers else 0
+        )
+
+        # Store selected answer
+        st.session_state.user_answers[current_q] = selected_option
+
+        # Navigation buttons
+        col1, col2, col3, col4 = st.columns(4)
+
+        with col1:
+            if st.button("⬅️ Previous", disabled=(current_q == 0), use_container_width=True):
+                st.session_state.current_question = max(0, current_q - 1)
+                st.rerun()
+
+        with col2:
+            if current_q < len(questions) - 1:
+                if st.button("➡️ Next", use_container_width=True):
+                    st.session_state.current_question = min(len(questions) - 1, current_q + 1)
+                    st.rerun()
+            else:
+                if st.button("🏁 Finish Quiz", use_container_width=True):
+                    st.session_state.show_quiz_results = True
+                    st.rerun()
+
+        with col3:
+            # Question navigator
+            if st.button("📋 Jump to...", use_container_width=True):
+                st.session_state.show_question_nav = not st.session_state.get('show_question_nav', False)
+                st.rerun()
+
+        with col4:
+            if st.button("❌ Close", use_container_width=True):
+                st.session_state.show_quiz = False
+                st.rerun()
+
+        # Question navigator
+        if st.session_state.get('show_question_nav', False):
+            st.subheader("📍 Jump to Question")
+            nav_cols = st.columns(5)
+            for i in range(len(questions)):
+                col_idx = i % 5
+                with nav_cols[col_idx]:
+                    status = "✅" if i in user_answers else "⭕"
+                    if st.button(f"{status} Q{i+1}", key=f"nav_q_{i}", use_container_width=True):
+                        st.session_state.current_question = i
+                        st.session_state.show_question_nav = False
+                        st.rerun()
+
+        # Quiz statistics
+        answered = len(user_answers)
+        remaining = len(questions) - answered
+
+        st.markdown(f"""
+        <div style="background: #f8f9fa; padding: 10px; border-radius: 5px; margin-top: 20px;">
+            <small>
+            📊 Progress: {answered}/{len(questions)} answered | {remaining} remaining
+            </small>
+        </div>
+        """, unsafe_allow_html=True)
+
 def generate_comprehensive_pdf():
     """Generate a comprehensive PDF study guide using ReportLab"""
     if not st.session_state.document_text:
@@ -687,7 +953,9 @@ def main():
             if st.button("📚 Memory Cards"):
                 if generate_flashcards():
                     st.rerun()
-            st.button("Action 3")
+            if st.button("🧠 Trial of Wisdom"):
+                if generate_quiz():
+                    st.rerun()
         with b_col2:
             if st.button("🗺️ Roadmap"):
                 if generate_document_roadmap():
@@ -720,6 +988,10 @@ def main():
     # Show flashcards popup if flashcards are generated
     if st.session_state.get('show_flashcards', False):
         show_flashcards_popup()
+
+    # Show quiz popup if quiz is generated
+    if st.session_state.get('show_quiz', False):
+        show_quiz_popup()
 
 if __name__ == "__main__":
     main()
