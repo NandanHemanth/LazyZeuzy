@@ -85,16 +85,17 @@ File upload, chat, and content generation APIs with in-memory storage and Gemini
 
 **API Endpoints:**
 - `POST /api/upload` - Upload files (PDF, TXT, audio, images, PowerPoint) with automatic text extraction and summarization
-- `POST /api/chat` - Chat interface with Athena persona using Gemini 2.0 Flash with document context
+- `POST /api/chat` - Chat interface with Athena persona using **Gemini 2.5 Pro** with document context
 - `GET /api/files` - Retrieve uploaded files
 - `GET /api/chat-history` - Retrieve chat history including document summaries
 - `POST /api/generate-content` - Generate audio/video content (placeholder)
 
 **Document Processing:**
 - PDF text extraction using PyPDF2
-- Automatic document summarization using Gemini AI
-- Document-aware chat responses with selected source context
+- Automatic document summarization using **Gemini 2.5 Pro** with structured, detailed summaries
+- Document-aware chat responses with selected source context using **Gemini 2.5 Pro**
 - Real-time dashboard updates when documents are uploaded
+- Follow-up questions and deep analysis of uploaded content
 
 ## Data Storage
 
