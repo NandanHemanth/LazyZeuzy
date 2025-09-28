@@ -33,6 +33,15 @@ moviepy
 PyPDF2
 python-docx
 
+# Audio synthesis
+hume
+
+# PDF generation
+reportlab
+
+# Video generation with Google Veo
+google-genai
+
 # Wan 2.2
 diffusers
 transformers

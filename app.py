@@ -20,6 +20,10 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
 from reportlab.pdfgen import canvas
 import tempfile
 import json
+import time
+from google import genai as google_genai
+from google.genai import types
+from datetime import datetime
 
 load_dotenv()
 
@@ -584,6 +588,208 @@ def show_quiz_popup():
         </div>
         """, unsafe_allow_html=True)
 
+def generate_ai_video():
+    """Generate AI video using Google Veo 3.0 from document summary"""
+    if not st.session_state.document_text:
+        st.warning("Please upload a document first!")
+        return False
+
+    try:
+        # Setup Google GenAI client for Veo
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            st.error("Please set your GEMINI_API_KEY in the .env file")
+            return False
+
+        # First generate a concise summary for video prompt
+        model = setup_gemini()
+        if not model:
+            return False
+
+        summary_prompt = f"""
+        Create a concise, visual description for a video based on this document.
+        Focus on creating an engaging, cinematic prompt that would work well for AI video generation.
+        Keep it under 100 words and make it visually descriptive.
+
+        Document Content:
+        {st.session_state.document_text[:2000]}...
+
+        Create a video prompt that captures the essence and key concepts visually.
+        """
+
+        summary_response = model.generate_content(summary_prompt)
+        video_prompt = summary_response.text.strip()
+
+        # Add status message to chat
+        st.session_state.messages.append({
+            "role": "assistant",
+            "content": f"🎬 **Starting Video Generation with Veo 3.0**\n\nGenerating video with prompt:\n\n*{video_prompt}*\n\nThis may take several minutes. The video will automatically download when ready..."
+        })
+
+        # Initialize Google GenAI client
+        client = google_genai.Client(api_key=api_key)
+
+        # Start video generation
+        with st.spinner("🎬 Generating AI video with Veo 3.0... This may take several minutes."):
+            operation = client.models.generate_videos(
+                model="veo-3.0-generate-001",
+                prompt=video_prompt,
+            )
+
+            # Poll for completion
+            start_time = time.time()
+            max_wait_time = 600  # 10 minutes timeout
+
+            while not operation.done:
+                elapsed_time = time.time() - start_time
+                if elapsed_time > max_wait_time:
+                    st.error("Video generation timed out after 10 minutes. Please try again.")
+                    return False
+
+                st.info(f"⏳ Video generation in progress... ({int(elapsed_time)}s elapsed)")
+                time.sleep(10)
+                operation = client.operations.get(operation)
+
+            # Download the generated video
+            generated_video = operation.response.generated_videos[0]
+
+            # Create a unique filename with timestamp
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"zeuzy_video_{timestamp}.mp4"
+
+            # Download and save video
+            client.files.download(file=generated_video.video)
+            generated_video.video.save(filename)
+
+            # Store video data for Streamlit download
+            with open(filename, 'rb') as video_file:
+                video_data = video_file.read()
+
+            st.session_state.video_data = video_data
+            st.session_state.video_filename = filename
+            st.session_state.show_video_download = True
+
+            # Add success message to chat
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": f"🎉 **Video Generated Successfully!**\n\nYour AI-generated video is ready! Generated using:\n\n*{video_prompt}*\n\nThe video has been automatically downloaded as `{filename}`. You can also download it again using the button below."
+            })
+
+            # Clean up temporary file
+            try:
+                os.remove(filename)
+            except:
+                pass
+
+            return True
+
+    except Exception as e:
+        st.error(f"Error generating video: {str(e)}")
+        st.info("💡 **Troubleshooting:**\n- Ensure your GEMINI_API_KEY has access to Veo 3.0\n- Check your API quota and billing\n- Try with a simpler document")
+        return False
+
+def generate_video_content():
+    """Generate video content script and storyboard from document summary"""
+    if not st.session_state.document_text:
+        st.warning("Please upload a document first!")
+        return False
+
+    try:
+        model = setup_gemini()
+        if not model:
+            return False
+
+        # First generate a summary if not already available
+        summary_prompt = f"""
+        Create a concise summary of the following document suitable for an 8-second video:
+
+        Document Content:
+        {st.session_state.document_text[:3000]}...
+
+        Provide a brief, engaging summary that captures the key points.
+        """
+
+        summary_response = model.generate_content(summary_prompt)
+        document_summary = summary_response.text
+
+        # Generate video script and storyboard
+        video_prompt = f"""
+        Create a detailed 8-second video script and storyboard based on this summary:
+
+        Summary: {document_summary}
+
+        Generate:
+        1. A video script with narration (8 seconds max)
+        2. Visual storyboard with 4 scenes (2 seconds each)
+        3. Suggested visuals, transitions, and key points
+        4. Background music suggestions
+        5. Text overlays for key information
+
+        Format as a comprehensive video production guide.
+        """
+
+        video_response = model.generate_content(video_prompt)
+        video_content = video_response.text
+
+        # Generate downloadable content
+        video_script_content = f"""
+# VIDEO PRODUCTION SCRIPT
+## Document: {getattr(st.session_state, 'uploaded_file_name', 'Document')}
+## Duration: 8 seconds
+## Generated by LazyZeuzy AI
+
+---
+
+## DOCUMENT SUMMARY
+{document_summary}
+
+---
+
+## VIDEO SCRIPT & STORYBOARD
+{video_content}
+
+---
+
+## PRODUCTION NOTES
+- Target Duration: 8 seconds
+- Format: Educational/Explainer Video
+- Style: Clean, Modern, Engaging
+- Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+---
+
+## NEXT STEPS
+1. Use this script with video creation tools like:
+   - Canva Video
+   - Adobe After Effects
+   - Loom or similar screen recording
+   - AI video generators (RunwayML, Synthesia)
+
+2. Follow the storyboard for visual sequences
+3. Record narration based on the script
+4. Add suggested background music
+5. Include text overlays as specified
+
+---
+Generated by LazyZeuzy - Your AI Learning Companion
+        """
+
+        # Store video script data for download
+        st.session_state.video_script_data = video_script_content.encode('utf-8')
+        st.session_state.show_video_download = True
+
+        # Add success message to chat
+        st.session_state.messages.append({
+            "role": "assistant",
+            "content": f"🎬 **Video Script Generated!**\n\nI've created a comprehensive 8-second video production script based on your document:\n\n• Complete narration script\n• 4-scene storyboard (2s each)\n• Visual suggestions and transitions\n• Background music recommendations\n• Text overlay specifications\n\nDownload the script below to create your video!"
+        })
+
+        return True
+
+    except Exception as e:
+        st.error(f"Error generating video content: {str(e)}")
+        return False
+
 def generate_comprehensive_pdf():
     """Generate a comprehensive PDF study guide using ReportLab"""
     if not st.session_state.document_text:
@@ -963,7 +1169,9 @@ def main():
             if st.button("📄 Study Guide"):
                 if generate_comprehensive_pdf():
                     st.rerun()
-            st.button("Action 6")
+            if st.button("🎬 AI Video"):
+                if generate_ai_video():
+                    st.rerun()
         st.button("Full Width Action")
 
         lottie_url_2 = "https://lottie.host/3ae4f794-0101-499b-888f-3743146d410e/ntRtMqOUj0.json"
@@ -983,6 +1191,20 @@ def main():
         )
         if st.button("❌ Close Download"):
             st.session_state.show_pdf_download = False
+            st.rerun()
+
+    # Show video download button if video is ready
+    if st.session_state.get('show_video_download', False):
+        st.success("🎬 Your AI-generated video is ready!")
+        st.download_button(
+            label="📥 Download AI Video",
+            data=st.session_state.video_data,
+            file_name=st.session_state.get('video_filename', 'zeuzy_video.mp4'),
+            mime="video/mp4",
+            use_container_width=True
+        )
+        if st.button("❌ Close Video Download"):
+            st.session_state.show_video_download = False
             st.rerun()
 
     # Show flashcards popup if flashcards are generated
