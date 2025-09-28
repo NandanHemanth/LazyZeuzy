@@ -7,6 +7,8 @@ import docx
 from io import BytesIO
 import requests
 from streamlit_lottie import st_lottie
+from hume import HumeClient
+from hume.tts import FormatMp3, PostedContextWithGenerationId, PostedUtterance
 
 load_dotenv()
 
@@ -57,6 +59,49 @@ def load_lottieurl(url: str):
     if r.status_code != 200:
         return None
     return r.json()
+
+def synthesize_audio_from_document():
+    """Synthesize audio from document content using Hume TTS"""
+    if not st.session_state.document_text:
+        st.warning("Please upload a document first!")
+        return False
+
+    hume_api_key = os.getenv("HUME_API_KEY")
+    if not hume_api_key:
+        st.error("Please set your HUME_API_KEY in the .env file")
+        return False
+
+    try:
+        # Take first 500 characters of document for audio synthesis
+        text_to_synthesize = st.session_state.document_text[:500] + "..." if len(st.session_state.document_text) > 500 else st.session_state.document_text
+
+        client = HumeClient(api_key=hume_api_key)
+
+        response = client.tts.synthesize_file(
+            context=PostedContextWithGenerationId(
+                generation_id="09ad914d-8e7f-40f8-a279-e34f07f7dab2",
+            ),
+            format=FormatMp3(),
+            num_generations=1,
+            utterances=[
+                PostedUtterance(
+                    text=text_to_synthesize,
+                    description="Middle-aged masculine voice with a clear, rhythmic Scots lilt, rounded vowels, and a warm, steady tone with an articulate, academic quality.",
+                )
+            ],
+        )
+
+        # Add success message to chat
+        st.session_state.messages.append({
+            "role": "assistant",
+            "content": "🎵 **Audio Generated Successfully!** \n\nI've synthesized the document content into audio using Hume's TTS with a warm, academic Scottish voice. The audio has been automatically downloaded."
+        })
+
+        return True
+
+    except Exception as e:
+        st.error(f"Error generating audio: {str(e)}")
+        return False
 
 def main():
     st.set_page_config(page_title="LazyZeszy", page_icon="🤖", layout="wide")
@@ -197,7 +242,9 @@ def main():
         st.write("### Actions")
         b_col1, b_col2 = st.columns(2, gap="small")
         with b_col1:
-            st.button("Action 1")
+            if st.button("🎵 Audio Muse"):
+                if synthesize_audio_from_document():
+                    st.rerun()
             st.button("Action 2")
             st.button("Action 3")
         with b_col2:
