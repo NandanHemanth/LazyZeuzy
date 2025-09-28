@@ -330,46 +330,7 @@ function generateContent(type) {
 }
 
 function initializeTooltips() {
-    // Add hover effects and tooltips
-    const actionBtns = document.querySelectorAll('.action-btn[title]');
-    actionBtns.forEach(btn => {
-        btn.addEventListener('mouseenter', showTooltip);
-        btn.addEventListener('mouseleave', hideTooltip);
-    });
-}
-
-function showTooltip(e) {
-    const tooltip = document.createElement('div');
-    tooltip.className = 'tooltip';
-    tooltip.textContent = e.target.title;
-    tooltip.style.cssText = `
-        position: absolute;
-        background: var(--temple-gradient);
-        color: var(--marble-white);
-        padding: 0.5rem 1rem;
-        border-radius: 8px;
-        font-size: 0.8rem;
-        border: 1px solid var(--olympus-gold);
-        z-index: 1000;
-        pointer-events: none;
-        transform: translateX(-50%);
-        white-space: nowrap;
-    `;
-
-    document.body.appendChild(tooltip);
-
-    const rect = e.target.getBoundingClientRect();
-    tooltip.style.left = rect.left + rect.width / 2 + 'px';
-    tooltip.style.top = rect.top - tooltip.offsetHeight - 8 + 'px';
-
-    e.target._tooltip = tooltip;
-}
-
-function hideTooltip(e) {
-    if (e.target._tooltip) {
-        document.body.removeChild(e.target._tooltip);
-        delete e.target._tooltip;
-    }
+    // Tooltips disabled for cleaner UI
 }
 
 function formatTime(date) {
@@ -471,6 +432,9 @@ function initializeFileUpload() {
     }
 
     if (uploadZone) {
+        // Make upload zone visible and functional
+        uploadZone.style.display = 'block';
+        
         // Drag and drop functionality
         uploadZone.addEventListener('dragover', function(e) {
             e.preventDefault();
@@ -502,14 +466,40 @@ function triggerFileUpload() {
     }
 }
 
-function handleFiles(files) {
-    Array.from(files).forEach(file => {
+async function handleFiles(files) {
+    const fileArray = Array.from(files);
+    const validFiles = fileArray.filter(file => {
         if (isAllowedFile(file)) {
-            uploadFile(file);
+            return true;
         } else {
             showNotification(`File type ${file.type} is not blessed by the gods`, 'error');
+            return false;
         }
     });
+
+    if (validFiles.length === 0) return;
+
+    // Show upload status
+    showUploadStatus(validFiles.length);
+
+    let uploadedCount = 0;
+    let totalCount = validFiles.length;
+
+    // Upload files sequentially to avoid overwhelming the server
+    for (let i = 0; i < validFiles.length; i++) {
+        const file = validFiles[i];
+        updateUploadProgress(i + 1, totalCount, file.name);
+
+        try {
+            await uploadFile(file);
+            uploadedCount++;
+        } catch (error) {
+            console.error(`Failed to upload ${file.name}:`, error);
+        }
+    }
+
+    // Show completion
+    showUploadComplete(uploadedCount, totalCount);
 }
 
 function isAllowedFile(file) {
@@ -536,38 +526,86 @@ async function uploadFile(file) {
     const formData = new FormData();
     formData.append('file', file);
 
-    try {
-        showUploadProgress(file.name);
+    const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+    });
 
-        const response = await fetch('/api/upload', {
-            method: 'POST',
-            body: formData
-        });
+    const result = await response.json();
 
-        const result = await response.json();
+    if (!result.success) {
+        throw new Error(result.error || 'Upload failed');
+    }
 
-        if (result.success) {
-            showNotification(result.message, 'success');
-            // Refresh sources and chat history
-            await loadSources();
-            await loadChatHistory();
-        } else {
-            showNotification(result.error || 'Upload failed', 'error');
-        }
-    } catch (error) {
-        console.error('Upload error:', error);
-        showNotification('Upload failed - The gods are displeased', 'error');
-    } finally {
-        hideUploadProgress();
+    return result;
+}
+
+// Upload status functions
+function showUploadStatus(fileCount) {
+    const uploadStatus = document.getElementById('uploadStatus');
+    const uploadTitle = document.getElementById('uploadTitle');
+    const uploadMessage = document.getElementById('uploadMessage');
+    const uploadSpinner = document.getElementById('uploadSpinner');
+
+    if (fileCount === 1) {
+        uploadTitle.textContent = 'Uploading to Divine Library';
+        uploadMessage.textContent = 'Blessing your sacred text...';
+    } else {
+        uploadTitle.textContent = 'Uploading to Divine Library';
+        uploadMessage.textContent = `Blessing ${fileCount} sacred texts...`;
+    }
+
+    uploadSpinner.style.display = 'block';
+    uploadStatus.classList.add('show');
+}
+
+function updateUploadProgress(current, total, filename) {
+    const uploadMessage = document.getElementById('uploadMessage');
+    const uploadProgress = document.getElementById('uploadProgress');
+
+    if (total === 1) {
+        uploadMessage.textContent = `Processing ${filename}...`;
+        uploadProgress.textContent = '';
+    } else {
+        uploadMessage.textContent = `Processing documents...`;
+        uploadProgress.textContent = `${current} of ${total}: ${filename}`;
     }
 }
 
-function showUploadProgress(filename) {
-    showNotification(`Uploading ${filename}...`, 'info');
+function showUploadComplete(uploadedCount, totalCount) {
+    const uploadTitle = document.getElementById('uploadTitle');
+    const uploadMessage = document.getElementById('uploadMessage');
+    const uploadProgress = document.getElementById('uploadProgress');
+    const uploadSpinner = document.getElementById('uploadSpinner');
+
+    uploadSpinner.style.display = 'none';
+
+    if (uploadedCount === totalCount) {
+        uploadTitle.textContent = 'Upload Complete!';
+        if (totalCount === 1) {
+            uploadMessage.textContent = 'Your document has been blessed by Athena';
+        } else {
+            uploadMessage.textContent = `All ${totalCount} documents have been blessed by Athena`;
+        }
+        uploadProgress.textContent = '';
+    } else {
+        uploadTitle.textContent = 'Upload Partial';
+        uploadMessage.textContent = `${uploadedCount} of ${totalCount} documents uploaded successfully`;
+        uploadProgress.textContent = '';
+    }
+
+    // Auto-hide after 3 seconds
+    setTimeout(() => {
+        hideUploadStatus();
+        // Refresh the UI
+        loadSources();
+        loadChatHistory();
+    }, 3000);
 }
 
-function hideUploadProgress() {
-    // Progress is handled by notifications
+function hideUploadStatus() {
+    const uploadStatus = document.getElementById('uploadStatus');
+    uploadStatus.classList.remove('show');
 }
 
 // Slideshow functionality

@@ -24,7 +24,7 @@ app.secret_key = 'athenas_divine_wisdom_2024'
 gemini_api_key = os.getenv('GEMINI_API_KEY')
 if gemini_api_key:
     genai.configure(api_key=gemini_api_key)
-    model = genai.GenerativeModel('gemini-2.0-flash-exp')
+    model = genai.GenerativeModel('gemini-2.5-pro')
 else:
     model = None
     print("Warning: GEMINI_API_KEY not found in environment variables")
@@ -51,16 +51,31 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def extract_text_from_pdf(file_path):
-    """Extract text content from PDF file"""
+    """Extract text content from PDF file using PyPDF2 3.0.1+"""
     try:
+        print(f"Attempting to extract text from PDF: {file_path}")
         with open(file_path, 'rb') as file:
             pdf_reader = PyPDF2.PdfReader(file)
             text = ""
-            for page in pdf_reader.pages:
-                text += page.extract_text() + "\n"
-            return text.strip()
+            print(f"PDF has {len(pdf_reader.pages)} pages")
+
+            for page_num, page in enumerate(pdf_reader.pages):
+                try:
+                    page_text = page.extract_text()
+                    text += page_text + "\n"
+                    print(f"Extracted {len(page_text)} characters from page {page_num + 1}")
+                except Exception as page_error:
+                    print(f"Error extracting text from page {page_num + 1}: {page_error}")
+                    continue
+
+            extracted_text = text.strip()
+            print(f"Total extracted text length: {len(extracted_text)}")
+            return extracted_text if extracted_text else None
+
     except Exception as e:
-        print(f"Error extracting PDF text: {e}")
+        print(f"Error extracting PDF text from {file_path}: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 def extract_text_from_txt(file_path):
@@ -73,31 +88,46 @@ def extract_text_from_txt(file_path):
         return None
 
 def generate_summary(text, filename):
-    """Generate summary using Gemini AI"""
+    """Generate summary using Gemini 2.5 Pro"""
     if not model or not text:
         return f"Document '{filename}' has been uploaded successfully. Summary generation is not available."
 
     try:
-        # Truncate text if too long (Gemini has token limits)
-        max_chars = 30000  # Conservative limit
+        # Truncate text if too long (Gemini 2.5 Pro has higher limits but still be safe)
+        max_chars = 50000  # Higher limit for Pro model
         if len(text) > max_chars:
             text = text[:max_chars] + "..."
 
-        prompt = f"""Please provide a comprehensive summary of the following document titled '{filename}'.
-        Include:
-        1. Main topics and themes
-        2. Key points and findings
-        3. Important details
-        4. Overall conclusion or purpose
+        prompt = f"""You are Athena, goddess of wisdom and knowledge. I have uploaded a document titled '{filename}' to your divine library. Please provide a comprehensive summary in your characteristic wise and eloquent manner.
 
-        Document content:
+        Structure your summary as follows:
+        🏛️ **Document Overview**
+        - Brief description of the document type and main subject
+
+        📜 **Key Themes & Topics**
+        - Main topics discussed
+        - Central themes and concepts
+
+        ⚡ **Important Insights**
+        - Key findings, arguments, or conclusions
+        - Notable facts or data points
+        - Critical information
+
+        🔮 **Practical Applications**
+        - How this knowledge can be applied
+        - Relevance to modern contexts
+
+        💎 **Divine Wisdom**
+        - Your perspective as Athena on the document's significance and value
+
+        Document content to analyze:
         {text}"""
 
         response = model.generate_content(prompt)
         return response.text
     except Exception as e:
-        print(f"Error generating summary: {e}")
-        return f"Document '{filename}' has been uploaded successfully. Summary could not be generated due to an error."
+        print(f"Error generating summary with Gemini 2.5 Pro: {e}")
+        return f"Document '{filename}' has been uploaded to my divine library, but the muses are temporarily silent. I cannot provide a summary at this moment, though I am ready to answer your questions about this sacred text."
 
 @app.route('/')
 def index():
@@ -218,30 +248,52 @@ def chat():
         if context_parts:
             context = "\n\n".join(context_parts)
 
-    # Generate AI response using Gemini
+    # Generate AI response using Gemini 2.5 Pro
     if model:
         try:
             if context:
-                prompt = f"""You are Athena, the Greek goddess of wisdom and learning. A user is asking you about documents they have uploaded. Please provide helpful and insightful answers based on the document content provided.
+                prompt = f"""You are Athena, goddess of wisdom, strategic warfare, and learning. A seeker of knowledge has consulted your divine library and asks about their uploaded documents. Respond with the wisdom and authority befitting the daughter of Zeus.
 
-User's question: {message}
-
-Relevant document content:
+🏛️ **Divine Context Available:**
 {context}
 
-Please answer the user's question based on the provided documents. Be knowledgeable, helpful, and maintain the persona of Athena with appropriate divine wisdom."""
-            else:
-                prompt = f"""You are Athena, the Greek goddess of wisdom and learning. A user is asking: "{message}"
+🔮 **Seeker's Question:**
+"{message}"
 
-Please respond helpfully while maintaining your divine persona. If they're asking about documents but no sources are selected, suggest they select relevant sources first."""
+**Instructions for your divine response:**
+- Draw insights from the provided document content
+- Provide thoughtful, comprehensive answers that demonstrate deep understanding
+- Connect concepts across different parts of the documents when relevant
+- Offer strategic perspectives and practical wisdom
+- Suggest related questions or areas for further exploration when appropriate
+- Maintain your divine persona while being genuinely helpful
+- If the question cannot be answered from the documents, clearly state this and offer to help in other ways
+
+Speak with the authority of divine wisdom, but remain accessible to mortal understanding."""
+            else:
+                # Check if user is asking about documents but hasn't selected any
+                document_keywords = ['document', 'file', 'upload', 'text', 'pdf', 'summary', 'analyze', 'content']
+                asking_about_docs = any(keyword.lower() in message.lower() for keyword in document_keywords)
+
+                if asking_about_docs and len(uploaded_files) > 0:
+                    available_docs = [f["original_name"] for f in uploaded_files]
+                    prompt = f"""You are Athena, goddess of wisdom. A seeker asks: "{message}"
+
+They appear to be asking about documents, but haven't selected any sources. I see these documents in your library: {', '.join(available_docs)}
+
+Gently guide them to select the relevant documents from the Sources panel so you can provide wisdom based on their specific content."""
+                else:
+                    prompt = f"""You are Athena, goddess of wisdom and learning. A seeker of knowledge asks: "{message}"
+
+Respond with divine wisdom while maintaining your characteristic eloquence and authority. If this is a general question not about specific documents, provide thoughtful guidance. If they're asking about uploading or working with documents, explain how they can use your divine library."""
 
             response = model.generate_content(prompt)
             ai_response = response.text
         except Exception as e:
-            print(f"Error generating AI response: {e}")
-            ai_response = f"Forgive me, seeker of wisdom. The divine channels are temporarily disrupted. I understand you wish to know about '{message}', but I cannot access the sacred knowledge at this moment."
+            print(f"Error generating AI response with Gemini 2.5 Pro: {e}")
+            ai_response = f"Forgive me, seeker of wisdom. The divine channels are momentarily disrupted by interference from the Titans. I understand you wish to know about '{message}', but I cannot access the full breadth of my knowledge at this moment. Please try again, and I shall consult the sacred scrolls anew."
     else:
-        ai_response = f"Athena's wisdom: I understand you wish to know about '{message}'. Let me consult the sacred scrolls and provide divine insight."
+        ai_response = f"Divine wisdom flows through ancient channels, but the connection to the sacred knowledge requires the proper divine key. I understand you seek knowledge about '{message}', yet I cannot access my full powers without the Gemini API configuration."
 
     ai_message = {
         'id': str(uuid.uuid4()),

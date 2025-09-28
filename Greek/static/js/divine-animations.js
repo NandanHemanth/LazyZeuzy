@@ -179,9 +179,9 @@ class DivineAnimations {
     }
 
     initializeHoverEffects() {
-        // Enhanced hover effects for interactive elements
+        // Enhanced hover effects for interactive elements (reduced effects)
         const interactiveElements = [
-            '.divine-btn', '.nav-link', '.tool-card', '.source-card',
+            '.divine-btn', '.nav-link', '.source-card',
             '.creation-card', '.action-btn', '.upload-zone'
         ];
 
@@ -194,11 +194,8 @@ class DivineAnimations {
 
     addDivineHoverEffect(element) {
         element.addEventListener('mouseenter', (e) => {
-            // Create divine aura effect
+            // Create divine aura effect only (no floating text)
             this.createDivineAura(e.target);
-
-            // Add floating text effect
-            this.createFloatingTitle(e.target);
         });
 
         element.addEventListener('mouseleave', (e) => {
@@ -243,60 +240,11 @@ class DivineAnimations {
         document.head.appendChild(style);
     }
 
-    createFloatingTitle(element) {
-        const title = element.getAttribute('data-divine-title') ||
-                     element.getAttribute('title') ||
-                     element.textContent.trim().substring(0, 20);
-
-        if (!title) return;
-
-        const floatingText = document.createElement('div');
-        floatingText.className = 'floating-divine-title';
-        floatingText.textContent = title;
-        floatingText.style.cssText = `
-            position: absolute;
-            top: -50px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(26, 22, 17, 0.95);
-            color: var(--olympus-gold);
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-family: var(--font-divine);
-            font-size: 0.9rem;
-            white-space: nowrap;
-            z-index: 10000;
-            border: 1px solid var(--olympus-gold);
-            box-shadow: 0 4px 20px rgba(212, 175, 55, 0.4);
-            animation: float-up 0.3s ease-out;
-            pointer-events: none;
-        `;
-
-        element.appendChild(floatingText);
-
-        // Add float animation
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes float-up {
-                0% {
-                    opacity: 0;
-                    transform: translateX(-50%) translateY(10px);
-                }
-                100% {
-                    opacity: 1;
-                    transform: translateX(-50%) translateY(0);
-                }
-            }
-        `;
-        document.head.appendChild(style);
-    }
+    // Removed floating title functionality to eliminate hover text
 
     removeDivineEffects(element) {
         const aura = element.querySelector('.divine-aura-effect');
-        const title = element.querySelector('.floating-divine-title');
-
         if (aura) aura.remove();
-        if (title) title.remove();
     }
 
     initializeScrollAnimations() {
