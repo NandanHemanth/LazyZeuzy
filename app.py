@@ -2,11 +2,14 @@ import streamlit as st
 import google.generativeai as genai
 from dotenv import load_dotenv
 import os
+import sys
+import json
 import PyPDF2
 import docx
 from io import BytesIO
 import requests
 from streamlit_lottie import st_lottie
+from typing import Dict, Any
 from hume import HumeClient
 from hume.tts import FormatMp3, PostedContextWithGenerationId, PostedUtterance
 # Note: Google Imagen API requires separate installation and setup
@@ -30,6 +33,8 @@ import plotly.express as px
 from plotly.utils import PlotlyJSONEncoder
 import base64
 from adaptive_accessibility import AdaptiveLearningCV, FlaskAccessibilityAPI
+import subprocess
+import threading
 
 load_dotenv()
 
@@ -595,7 +600,7 @@ def show_quiz_popup():
         """, unsafe_allow_html=True)
 
 def generate_ai_video():
-    """Generate AI video using Google Veo 3.0 from document summary"""
+    """Generate AI video using Google Veo 3.0 from document summary with fallback options"""
     if not st.session_state.document_text:
         st.warning("Please upload a document first!")
         return False
@@ -690,8 +695,61 @@ def generate_ai_video():
             return True
 
     except Exception as e:
-        st.error(f"Error generating video: {str(e)}")
-        st.info("💡 **Troubleshooting:**\n- Ensure your GEMINI_API_KEY has access to Veo 3.0\n- Check your API quota and billing\n- Try with a simpler document")
+        error_message = str(e)
+
+        # Handle specific quota/billing errors
+        if "429" in error_message or "RESOURCE_EXHAUSTED" in error_message or "quota" in error_message.lower():
+            st.error("🚫 **Video Generation Quota Exceeded**")
+            st.info("""
+            **Issue:** Your Google AI API quota has been exceeded.
+
+            **Solutions:**
+            1. **Enable Billing**: Veo 3.0 requires a paid Google Cloud account
+            2. **Check Quotas**: Visit [Google AI Studio](https://aistudio.google.com) to check your limits
+            3. **Upgrade Plan**: Consider upgrading your API plan for higher quotas
+            4. **Wait**: Quotas reset periodically (usually daily)
+
+            **Alternative:** Use the video script generator instead for now.
+            """)
+
+            # Offer fallback to video script generation
+            if st.button("📝 Generate Video Script Instead"):
+                return generate_video_content()
+
+        elif "PERMISSION_DENIED" in error_message:
+            st.error("🔒 **Access Denied to Veo 3.0**")
+            st.info("""
+            **Issue:** Your API key doesn't have access to Veo 3.0.
+
+            **Solutions:**
+            1. **Apply for Access**: Request Veo 3.0 access at [Google AI Studio](https://aistudio.google.com)
+            2. **Verify Billing**: Ensure billing is enabled on your Google Cloud account
+            3. **Check Region**: Veo 3.0 may not be available in all regions
+
+            **Alternative:** Use the video script generator for now.
+            """)
+
+            # Offer fallback
+            if st.button("📝 Generate Video Script Instead"):
+                return generate_video_content()
+
+        else:
+            st.error(f"❌ **Video Generation Failed**")
+            st.error(f"Error details: {error_message}")
+            st.info("""
+            **Troubleshooting Steps:**
+            1. Check your internet connection
+            2. Verify your GEMINI_API_KEY is correct
+            3. Ensure your Google Cloud project has Veo 3.0 enabled
+            4. Try again in a few minutes
+
+            **Alternative:** Generate a detailed video script instead.
+            """)
+
+            # Offer fallback
+            if st.button("📝 Generate Video Script Instead"):
+                return generate_video_content()
+
         return False
 
 def generate_video_content():
@@ -1167,6 +1225,258 @@ def _get_cognitive_load_interpretation(score):
     else:
         return "Cognitive load is manageable. Current learning pace appears appropriate."
 
+def launch_educational_game():
+    """Launch the educational Pygame maze game"""
+    if not st.session_state.document_text:
+        st.warning("Please upload a document first!")
+        return False
+
+    try:
+        # Prepare game data from document content
+        model = setup_gemini()
+        if not model:
+            return False
+
+        with st.spinner("🎮 Preparing your educational game..."):
+            # Generate summary for audio narration
+            summary_prompt = f"""
+            Create a clear, engaging summary of this document for audio narration in a game.
+            Keep it conversational and motivating for learning. Limit to 100 words.
+
+            Document: {st.session_state.document_text[:2000]}...
+
+            Create a summary that will get players excited to learn about this topic.
+            """
+
+            summary_response = model.generate_content(summary_prompt)
+            game_summary = summary_response.text
+
+            # Generate roadmap structure for maze
+            roadmap_prompt = f"""
+            Create a learning roadmap structure for this document that can be used in a maze game.
+            Format as sections with titles and types.
+
+            Document: {st.session_state.document_text[:2000]}...
+
+            Create 4-6 sections in order:
+            1. Start with introduction (flashcard)
+            2. 2-3 main concept sections (flashcard)
+            3. 1-2 practice sections (quiz)
+            4. End with goal section (goal)
+
+            Format each section as: Title | Type | Brief content description
+            """
+
+            roadmap_response = model.generate_content(roadmap_prompt)
+            roadmap_text = roadmap_response.text
+
+            # Parse roadmap into game data
+            sections = []
+            for line in roadmap_text.split('\n'):
+                if '|' in line:
+                    parts = [part.strip() for part in line.split('|')]
+                    if len(parts) >= 3:
+                        title = parts[0]
+                        section_type = parts[1].lower()
+                        content = parts[2]
+
+                        # Ensure valid types
+                        if section_type not in ['flashcard', 'quiz', 'goal']:
+                            section_type = 'flashcard'
+
+                        sections.append({
+                            'title': title,
+                            'type': section_type,
+                            'content': content,
+                            'data': _generate_section_data(model, title, content, section_type, st.session_state.document_text)
+                        })
+
+            # Fallback sections if parsing fails
+            if not sections:
+                sections = [
+                    {'title': 'Introduction', 'type': 'flashcard', 'content': 'Welcome to learning!', 'data': {}},
+                    {'title': 'Main Concepts', 'type': 'flashcard', 'content': 'Key ideas to understand', 'data': {}},
+                    {'title': 'Knowledge Check', 'type': 'quiz', 'content': 'Test your understanding', 'data': {}},
+                    {'title': 'Master the Topic', 'type': 'goal', 'content': 'Explain what you learned', 'data': {}}
+                ]
+
+            # Create game data package
+            game_data = {
+                'summary': game_summary,
+                'roadmap': {
+                    'sections': sections
+                },
+                'document_title': getattr(st.session_state, 'uploaded_file_name', 'Learning Document')
+            }
+
+            # Save game data for the game to access
+            game_data_path = os.path.join(tempfile.gettempdir(), 'zeuzy_game_data.json')
+            with open(game_data_path, 'w', encoding='utf-8') as f:
+                json.dump(game_data, f, indent=2, ensure_ascii=False)
+
+            # Launch game in separate process
+            def launch_game_process():
+                try:
+                    game_script = os.path.join(os.path.dirname(__file__), 'educational_game_fixed.py')
+                    subprocess.run([sys.executable, game_script, game_data_path], check=True)
+                except Exception as e:
+                    print(f"Game launch error: {e}")
+
+            # Start game in background thread
+            game_thread = threading.Thread(target=launch_game_process, daemon=True)
+            game_thread.start()
+
+            # Add success message to chat
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": f"🎮 **Educational Game Launched!**\n\nI've created a personalized maze game based on your document:\n\n• **Audio Narration**: Document summary will be read aloud\n• **Learning Maze**: Navigate through {len(sections)} learning sections\n• **Interactive Elements**: Flashcards and quizzes at each stop\n• **AI Assessment**: Explain what you learned for a final score\n\n**Controls:**\n• WASD or Arrow Keys to move\n• Space to play audio narration\n• Mouse to interact with quizzes and flashcards\n\nThe game window should open shortly. Have fun learning!"
+            })
+
+            return True
+
+    except Exception as e:
+        st.error(f"Error launching game: {str(e)}")
+        st.info("💡 **Troubleshooting:**\n- Ensure pygame is installed: `pip install pygame pyttsx3`\n- Check that your system supports audio playback\n- Try restarting the application")
+        return False
+
+def _generate_section_data(model, title: str, content: str, section_type: str, document_text: str) -> Dict[str, Any]:
+    """Generate specific data for each game section with quota error handling"""
+
+    def _get_fallback_quiz_data(title: str) -> Dict[str, Any]:
+        """Generate fallback quiz data when API is unavailable"""
+        return {
+            "questions": [
+                {
+                    "question": f"What is the main topic discussed in '{title}'?",
+                    "options": ["Primary concept", "Secondary idea", "Related topic", "Background information"],
+                    "correct": 0
+                },
+                {
+                    "question": f"Which statement best describes '{title}'?",
+                    "options": ["It's a core learning objective", "It's optional material", "It's review content", "It's introductory material"],
+                    "correct": 0
+                },
+                {
+                    "question": f"How does '{title}' relate to the overall document?",
+                    "options": ["It's an essential component", "It's supplementary", "It's an example", "It's a conclusion"],
+                    "correct": 0
+                }
+            ]
+        }
+
+    def _get_fallback_flashcard_data(title: str, content: str) -> Dict[str, Any]:
+        """Generate fallback flashcard data when API is unavailable"""
+        return {
+            "flashcards": [
+                {
+                    "front": f"What is '{title}'?",
+                    "back": f"This section covers key concepts related to {title}. {content[:100]}..."
+                },
+                {
+                    "front": f"Key learning point about '{title}'",
+                    "back": f"Understanding {title} is important for mastering the overall topic covered in this document."
+                }
+            ]
+        }
+
+    try:
+        # Check for quota/API errors and use fallback immediately
+        if section_type == 'quiz':
+            try:
+                # Generate quiz questions
+                quiz_prompt = f"""
+                Create 3 multiple choice questions about "{title}" from this document:
+
+                Document: {document_text[:1500]}...
+
+                Format as JSON:
+                {{
+                    "questions": [
+                        {{
+                            "question": "Question text?",
+                            "options": ["A", "B", "C", "D"],
+                            "correct": 0
+                        }}
+                    ]
+                }}
+                """
+
+                quiz_response = model.generate_content(quiz_prompt)
+                quiz_text = quiz_response.text
+
+                # Clean and parse JSON
+                if "```json" in quiz_text:
+                    quiz_text = quiz_text.split("```json")[1].split("```")[0]
+                elif "```" in quiz_text:
+                    quiz_text = quiz_text.split("```")[1].split("```")[0]
+
+                try:
+                    return json.loads(quiz_text.strip())
+                except:
+                    return _get_fallback_quiz_data(title)
+
+            except Exception as api_error:
+                # Handle quota errors specifically
+                if "429" in str(api_error) or "quota" in str(api_error).lower():
+                    print(f"API quota exceeded, using fallback quiz data for '{title}'")
+                    return _get_fallback_quiz_data(title)
+                else:
+                    print(f"API error for quiz '{title}': {api_error}")
+                    return _get_fallback_quiz_data(title)
+
+        elif section_type == 'flashcard':
+            try:
+                # Generate flashcards
+                flashcard_prompt = f"""
+                Create 2 flashcards about "{title}" from this document:
+
+                Document: {document_text[:1500]}...
+
+                Format as JSON:
+                {{
+                    "flashcards": [
+                        {{
+                            "front": "Key term or concept",
+                            "back": "Definition or explanation"
+                        }}
+                    ]
+                }}
+                """
+
+                flashcard_response = model.generate_content(flashcard_prompt)
+                flashcard_text = flashcard_response.text
+
+                # Clean and parse JSON
+                if "```json" in flashcard_text:
+                    flashcard_text = flashcard_text.split("```json")[1].split("```")[0]
+                elif "```" in flashcard_text:
+                    flashcard_text = flashcard_text.split("```")[1].split("```")[0]
+
+                try:
+                    return json.loads(flashcard_text.strip())
+                except:
+                    return _get_fallback_flashcard_data(title, content)
+
+            except Exception as api_error:
+                # Handle quota errors specifically
+                if "429" in str(api_error) or "quota" in str(api_error).lower():
+                    print(f"API quota exceeded, using fallback flashcard data for '{title}'")
+                    return _get_fallback_flashcard_data(title, content)
+                else:
+                    print(f"API error for flashcard '{title}': {api_error}")
+                    return _get_fallback_flashcard_data(title, content)
+
+        return {}
+
+    except Exception as e:
+        print(f"Section data generation error: {e}")
+        # Return appropriate fallback based on section type
+        if section_type == 'quiz':
+            return _get_fallback_quiz_data(title)
+        elif section_type == 'flashcard':
+            return _get_fallback_flashcard_data(title, content)
+        return {}
+
 def generate_comprehensive_pdf():
     """Generate a comprehensive PDF study guide using ReportLab"""
     if not st.session_state.document_text:
@@ -1621,9 +1931,20 @@ def main():
             if st.button("📄 Study Guide"):
                 if generate_comprehensive_pdf():
                     st.rerun()
-            if st.button("🎬 AI Video"):
-                if generate_ai_video():
-                    st.rerun()
+            video_col1, video_col2 = st.columns(2)
+            with video_col1:
+                if st.button("🎬 AI Video", help="Generate video with Veo 3.0 (requires billing)"):
+                    if generate_ai_video():
+                        st.rerun()
+            with video_col2:
+                if st.button("📝 Video Script", help="Generate detailed video production script"):
+                    if generate_video_content():
+                        st.rerun()
+
+        # Educational Game Button
+        if st.button("🎮 Play Learning Game", use_container_width=True, help="Launch interactive maze game based on your document"):
+            if launch_educational_game():
+                st.rerun()
 
         # Show real-time analytics if tracking is active
         if st.session_state.accessibility_active and st.session_state.accessibility_tracker:
@@ -1737,6 +2058,21 @@ def main():
         )
         if st.button("❌ Close Accessibility Download"):
             st.session_state.show_accessibility_pdf_download = False
+            st.rerun()
+
+    # Show video script download button if script is ready
+    if st.session_state.get('show_video_download', False) and 'video_script_data' in st.session_state:
+        st.success("📝 Your video production script is ready!")
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        st.download_button(
+            label="📥 Download Video Script",
+            data=st.session_state.video_script_data,
+            file_name=f"video_script_{timestamp}.md",
+            mime="text/markdown",
+            use_container_width=True
+        )
+        if st.button("❌ Close Script Download"):
+            st.session_state.show_video_download = False
             st.rerun()
 
     # Show flashcards popup if flashcards are generated

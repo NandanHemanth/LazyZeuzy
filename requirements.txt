@@ -42,6 +42,10 @@ reportlab
 # Video generation with Google Veo
 google-genai
 
+# Educational Game
+pygame>=2.5.0
+pyttsx3>=2.90
+
 # Wan 2.2
 diffusers
 transformers
