@@ -9,6 +9,8 @@ import requests
 from streamlit_lottie import st_lottie
 from hume import HumeClient
 from hume.tts import FormatMp3, PostedContextWithGenerationId, PostedUtterance
+# Note: Google Imagen API requires separate installation and setup
+from PIL import Image
 
 load_dotenv()
 
@@ -102,6 +104,210 @@ def synthesize_audio_from_document():
     except Exception as e:
         st.error(f"Error generating audio: {str(e)}")
         return False
+
+def generate_document_roadmap():
+    """Generate a visual text-based roadmap of the document content"""
+    if not st.session_state.document_text:
+        st.warning("Please upload a document first!")
+        return False
+
+    try:
+        model = setup_gemini()
+        if not model:
+            return False
+
+        roadmap_prompt = f"""
+        Analyze the following document and create a visual ASCII-style roadmap using emojis and text.
+        Create a clear pathway showing the main concepts, flow, and structure of the document.
+        Use arrows (→, ↓), emojis, and formatting to create a visual journey.
+
+        Format it like this example:
+        🏁 START: [Main Topic]
+        ↓
+        📍 STEP 1: [First Key Concept]
+        ↓
+        📍 STEP 2: [Second Key Concept]
+        ↓
+        🎯 GOAL: [Final Outcome/Conclusion]
+
+        Document Content:
+        {st.session_state.document_text[:2000]}...
+
+        Create a comprehensive visual roadmap with emojis, arrows, and clear structure (max 500 words).
+        """
+
+        response = model.generate_content(roadmap_prompt)
+        roadmap_content = response.text
+
+        # Add the roadmap to chat
+        st.session_state.messages.append({
+            "role": "assistant",
+            "content": f"🗺️ **Document Roadmap Generated!**\n\nHere's a visual roadmap of your document's content and structure:\n\n```\n{roadmap_content}\n```"
+        })
+
+        return True
+
+    except Exception as e:
+        st.error(f"Error generating roadmap: {str(e)}")
+        return False
+
+def generate_flashcards():
+    """Generate flashcards from document content using Gemini"""
+    if not st.session_state.document_text:
+        st.warning("Please upload a document first!")
+        return False
+
+    try:
+        model = setup_gemini()
+        if not model:
+            return False
+
+        flashcards_prompt = f"""
+        Create 10 educational flashcards based on the following document content.
+        Format each flashcard as a JSON object with "question" and "answer" fields.
+        Make questions that test understanding, key concepts, and important details.
+        Keep questions clear and concise, answers should be informative but not too long.
+
+        Document Content:
+        {st.session_state.document_text[:3000]}...
+
+        Respond with ONLY a valid JSON array of flashcard objects like this:
+        [
+            {{"question": "What is...?", "answer": "The answer is..."}},
+            {{"question": "How does...?", "answer": "It works by..."}}
+        ]
+
+        Generate exactly 10 flashcards.
+        """
+
+        response = model.generate_content(flashcards_prompt)
+        flashcards_text = response.text
+
+        # Clean up the response to extract JSON
+        import json
+        try:
+            # Remove any markdown formatting
+            if "```json" in flashcards_text:
+                flashcards_text = flashcards_text.split("```json")[1].split("```")[0]
+            elif "```" in flashcards_text:
+                flashcards_text = flashcards_text.split("```")[1].split("```")[0]
+
+            flashcards_data = json.loads(flashcards_text.strip())
+
+            # Store flashcards in session state
+            st.session_state.flashcards = flashcards_data
+            st.session_state.current_card = 0
+            st.session_state.show_flashcards = True
+            st.session_state.show_answer = False
+
+            # Add success message to chat
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": f"📚 **Flashcards Generated!**\n\nI've created {len(flashcards_data)} flashcards based on your document. Click the flashcard popup to start studying!"
+            })
+
+            return True
+
+        except json.JSONDecodeError:
+            st.error("Error parsing flashcards. Please try again.")
+            return False
+
+    except Exception as e:
+        st.error(f"Error generating flashcards: {str(e)}")
+        return False
+
+@st.dialog("📚 Study Flashcards")
+def show_flashcards_popup():
+    """Display flashcards in a popup dialog"""
+    if 'flashcards' not in st.session_state or not st.session_state.flashcards:
+        st.error("No flashcards available!")
+        return
+
+    flashcards = st.session_state.flashcards
+    current_card = st.session_state.get('current_card', 0)
+    show_answer = st.session_state.get('show_answer', False)
+
+    # Progress indicator
+    st.progress((current_card + 1) / len(flashcards))
+    st.write(f"Card {current_card + 1} of {len(flashcards)}")
+
+    # Card container with styling
+    with st.container():
+        st.markdown("""
+        <style>
+        .flashcard {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            color: white;
+            min-height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        }
+        .flashcard h3 {
+            color: white !important;
+            margin: 0;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
+        if not show_answer:
+            # Show question
+            st.markdown(f"""
+            <div class="flashcard">
+                <h3>❓ {flashcards[current_card]['question']}</h3>
+            </div>
+            """, unsafe_allow_html=True)
+
+            col1, col2, col3 = st.columns([1, 1, 1])
+            with col2:
+                if st.button("Show Answer", use_container_width=True):
+                    st.session_state.show_answer = True
+                    st.rerun()
+        else:
+            # Show answer
+            st.markdown(f"""
+            <div class="flashcard">
+                <h3>💡 {flashcards[current_card]['answer']}</h3>
+            </div>
+            """, unsafe_allow_html=True)
+
+    # Navigation buttons
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        if st.button("⬅️ Previous", disabled=(current_card == 0)):
+            st.session_state.current_card = max(0, current_card - 1)
+            st.session_state.show_answer = False
+            st.rerun()
+
+    with col2:
+        if show_answer and st.button("🔄 Hide Answer"):
+            st.session_state.show_answer = False
+            st.rerun()
+
+    with col3:
+        if st.button("➡️ Next", disabled=(current_card >= len(flashcards) - 1)):
+            st.session_state.current_card = min(len(flashcards) - 1, current_card + 1)
+            st.session_state.show_answer = False
+            st.rerun()
+
+    with col4:
+        if st.button("🔀 Shuffle"):
+            import random
+            random.shuffle(st.session_state.flashcards)
+            st.session_state.current_card = 0
+            st.session_state.show_answer = False
+            st.rerun()
+
+    # Close button
+    if st.button("✅ Done Studying", use_container_width=True):
+        st.session_state.show_flashcards = False
+        st.rerun()
 
 def main():
     st.set_page_config(page_title="LazyZeszy", page_icon="🤖", layout="wide")
@@ -245,10 +451,14 @@ def main():
             if st.button("🎵 Audio Muse"):
                 if synthesize_audio_from_document():
                     st.rerun()
-            st.button("Action 2")
+            if st.button("📚 Memory Cards"):
+                if generate_flashcards():
+                    st.rerun()
             st.button("Action 3")
         with b_col2:
-            st.button("Action 4")
+            if st.button("🗺️ Roadmap"):
+                if generate_document_roadmap():
+                    st.rerun()
             st.button("Action 5")
             st.button("Action 6")
         st.button("Full Width Action")
@@ -257,6 +467,10 @@ def main():
         lottie_json_2 = load_lottieurl(lottie_url_2)
         if lottie_json_2:
             st_lottie(lottie_json_2, height=200)
+
+    # Show flashcards popup if flashcards are generated
+    if st.session_state.get('show_flashcards', False):
+        show_flashcards_popup()
 
 if __name__ == "__main__":
     main()
