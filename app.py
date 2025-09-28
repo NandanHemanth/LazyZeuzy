@@ -1840,7 +1840,7 @@ def main():
                     st.rerun()
 
         # Educational Game Button
-        if st.button("🎮 Play Learning Game", use_container_width=True, help="Launch interactive maze game based on your document"):
+        if st.button("🎮 Educational Game", use_container_width=True, help="Launch interactive maze game based on your document"):
             if launch_educational_game():
                 st.rerun()
 
