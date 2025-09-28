@@ -2,8 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(python:*)",
-      "Bash(copy:*)",
-      "Bash(git checkout:*)"
+      "Bash(pip install:*)",
+      "Bash(streamlit run:*)",
+      "Bash(timeout:*)"
     ],
     "deny": [],
     "ask": []

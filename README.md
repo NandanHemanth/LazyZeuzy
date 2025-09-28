@@ -1,305 +1,129 @@
-# Adaptive Accessibility Tracker
+# 🏛️ Hera - Greek Goddesses RAG Assistant
 
-A revolutionary AI-powered system for real-time emotion, stress, ADHD, and accessibility detection with analytics and visualization capabilities, ready for Flask integration.
+A beautiful Streamlit application themed around Greek goddesses, featuring a RAG (Retrieval-Augmented Generation) chatbot named Hera with interactive learning tools.
 
-## Features
+## ✨ Features
 
-### Core Detection Capabilities
-- **Emotion Recognition**: Real-time facial emotion detection using DeepFace
-- **Stress Level Monitoring**: Multi-factor stress assessment
-- **ADHD Pattern Detection**: Movement and attention pattern analysis
-- **Accessibility Assessment**: Visual, motor, and cognitive accessibility needs detection
-- **Attention & Engagement Tracking**: Focus stability and engagement level monitoring
+### 🎨 Greek Goddesses Theme
+- Beautiful gradient backgrounds and Greek-inspired styling
+- Custom fonts (Cinzel) for an authentic ancient feel
+- Lottie animations for enhanced user experience
+- Goddess-themed UI elements and colors
 
-### Analytics & Visualization
-- **Real-time Analytics**: Live data processing and storage
-- **Tiny Graphs**: Flask-ready Plotly visualizations
-- **Performance Metrics**: Comprehensive KPI tracking
-- **AI-Powered Insights**: Automated pattern recognition and recommendations
-- **Critical Alerts**: Immediate notifications for concerning patterns
+### 💬 Hera RAG Chatbot
+- Interactive chat interface with Hera, Queen of the Gods
+- Document upload functionality (PDF and TXT files)
+- RAG-powered responses (ready for integration with your preferred LLM)
+- Contextual responses based on uploaded documents
 
-### Flask Integration
-- **REST API**: Complete API endpoints for web integration
-- **Dashboard**: Ready-to-use web dashboard
-- **Real-time Updates**: Live data streaming capabilities
-- **Export Functionality**: Session data export for analysis
+### 🎯 Learning Widgets (2x3 Grid)
+- **🎥 Video Oracle**: Generate educational videos
+- **🎵 Audio Muse**: Create audio content
+- **📚 Memory Cards**: Generate flashcards for studying
+- **❓ Trial of Wisdom**: Interactive quizzes
+- **📊 Oracle's Report**: Analytical reports
+- **🛠️ Forge of Learning**: Hands-on exercises
 
-## Installation
+### 📖 Story Mode
+- Large dedicated button for immersive story-based learning
+- Mythological narrative experiences
+- Quest-based learning adventures
 
-### Requirements
+## 🚀 Quick Start
+
+### Option 1: Using the Launcher (Recommended)
+```bash
+python run_hera.py
+```
+
+### Option 2: Manual Setup
+1. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-### Core Dependencies
-- OpenCV (camera and computer vision)
-- MediaPipe (face and hand tracking)
-- DeepFace (emotion recognition)
-- Plotly (interactive visualizations)
-- Pandas (data analysis)
-- NumPy (numerical computing)
-- Flask (web framework)
-
-## Quick Start
-
-### 1. Basic Usage
-```python
-from adaptive_accessibility import AdaptiveLearningCV
-
-# Initialize the tracker
-tracker = AdaptiveLearningCV()
-
-# Process a frame (from camera or video)
-result = tracker.process_frame(frame)
-
-# Get analytics report
-report = tracker.generate_analytics_report()
-```
-
-### 2. Flask Integration
-```python
-from adaptive_accessibility import FlaskAccessibilityAPI
-
-# Initialize Flask API
-flask_api = FlaskAccessibilityAPI()
-
-# Start tracking
-result = flask_api.start_tracking()
-
-# Get dashboard data
-dashboard_data = flask_api.get_analytics_dashboard_data()
-
-# Get tiny graphs for web display
-graphs = flask_api.get_tiny_graphs_json()
-```
-
-### 3. Demo Modes
-Run the built-in demo:
+2. Run the application:
 ```bash
-python adaptive_accessibility.py
+streamlit run hera_app.py
 ```
 
-Choose from:
-1. **Camera Tracking**: Live webcam analysis
-2. **Flask Integration Demo**: Generate sample data and test web integration
-3. **Sample Data Generation**: Create analytics data for testing
+## 📋 Requirements
 
-### 4. Web Dashboard
-```bash
-python flask_example.py
+- Python 3.7+
+- Streamlit
+- Pillow (PIL)
+- streamlit-lottie (optional, for animations)
+
+## 🏗️ Project Structure
+
 ```
-Then open http://localhost:5000 for the interactive dashboard.
-
-## API Endpoints
-
-### Core Tracking
-- `POST /api/start-tracking` - Start camera tracking
-- `POST /api/stop-tracking` - Stop tracking
-- `GET /api/current-data` - Get real-time data
-
-### Analytics
-- `GET /api/dashboard-data` - Complete dashboard data
-- `GET /api/tiny-graphs` - Plotly visualizations
-- `GET /api/recommendations` - Accessibility recommendations
-- `GET /api/insights` - AI-powered insights
-
-### Utilities
-- `POST /api/demo-data` - Generate demo data
-- `GET /api/export-session` - Export session analytics
-
-## Key Classes
-
-### AdaptiveLearningCV
-Main computer vision and analytics engine.
-
-**Key Methods:**
-- `process_frame(frame)` - Analyze single video frame
-- `generate_analytics_report()` - Create comprehensive analytics
-- `get_flask_interface_data()` - Format data for web display
-
-### FlaskAccessibilityAPI
-Web integration helper class.
-
-**Key Methods:**
-- `start_tracking()` / `stop_tracking()` - Control tracking
-- `get_analytics_dashboard_data()` - Dashboard data
-- `get_tiny_graphs_json()` - Web-ready visualizations
-- `simulate_demo_data()` - Generate test data
-
-### Data Classes
-- `LearningState` - Current user state
-- `AccessibilityAssessment` - Accessibility needs analysis
-
-## Visualization Types
-
-### 1. Emotion Distribution (Pie Chart)
-Shows breakdown of detected emotions over time.
-
-### 2. Real-time Metrics Timeline
-Multi-line chart tracking stress, attention, and engagement.
-
-### 3. ADHD Risk Gauge
-Gauge chart showing current ADHD risk assessment.
-
-### 4. Accessibility Strain Heatmap
-Heat map of visual strain, cognitive load, and stress levels.
-
-### 5. Performance Radar Chart
-Radar chart showing attention, engagement, motor precision, and focus stability.
-
-## Analytics Features
-
-### Summary Statistics
-- Average stress levels and trends
-- Dominant emotions and emotional diversity
-- ADHD risk categorization
-- Attention stability metrics
-- Visual strain indicators
-- Cognitive load assessments
-
-### AI Insights
-- Automatic pattern detection
-- Trend analysis
-- Risk assessment
-- Performance optimization suggestions
-
-### Recommendations Engine
-- Stress management techniques
-- ADHD support strategies
-- Attention improvement methods
-- Visual comfort adjustments
-- Accessibility adaptations
-
-## Use Cases
-
-### Educational Technology
-- Adaptive learning platforms
-- Student engagement monitoring
-- Accessibility compliance
-- Personalized content delivery
-
-### Healthcare & Therapy
-- ADHD assessment tools
-- Stress monitoring systems
-- Accessibility evaluation
-- Patient engagement tracking
-
-### Workplace Wellness
-- Employee well-being monitoring
-- Ergonomic assessments
-- Productivity optimization
-- Stress intervention systems
-
-### Research & Development
-- Human-computer interaction studies
-- Accessibility research
-- Educational effectiveness analysis
-- Behavioral pattern studies
-
-## Configuration Options
-
-### Camera Settings
-```python
-# Specify camera index
-flask_api.start_tracking(camera_index=0)
+├── hera_app.py          # Main enhanced Streamlit application
+├── app.py               # Basic version of the application  
+├── run_hera.py          # Launcher script
+├── requirements.txt     # Python dependencies
+└── README.md           # This file
 ```
 
-### Analytics Time Windows
-```python
-# Generate report for specific time period
-report = tracker.generate_analytics_report(time_window_hours=24)
+## 🎨 Customization
 
-# Get graphs for specific timeframe
-graphs = flask_api.get_tiny_graphs_json(time_window_hours=2)
-```
+### Adding Your RAG Backend
+The application is designed to be easily integrated with your preferred RAG system. Look for the comment `[This is where the RAG system would process your documents]` in the chat interface to add your implementation.
 
-### Demo Data Generation
-```python
-# Generate sample data for testing
-result = flask_api.simulate_demo_data(duration_minutes=5)
-```
+### Modifying Themes
+- Edit the CSS in the `st.markdown()` sections to customize colors and styling
+- Replace Lottie animation URLs with your preferred animations
+- Modify the goddess names and themes in the text content
 
-## Data Export
+### Adding New Widgets
+Add new learning tools by:
+1. Creating new button elements in the `render_widgets()` function
+2. Adding corresponding functionality for each widget
+3. Updating the styling as needed
 
-### Session Data Export
-```python
-session_data = tracker.export_session_data()
-# Contains: emotions, attention, movements, analytics, alerts
-```
+## 🌟 Features in Detail
 
-### Analytics Report Export
-```python
-analytics_report = flask_api.export_session_analytics()
-# Contains: complete analytics, visualizations, insights, recommendations
-```
+### Sidebar Upload
+- Drag-and-drop file upload interface
+- Support for multiple file types (TXT, PDF)
+- Real-time file processing feedback
+- Document management with file details
 
-## Performance Considerations
+### Chat Interface  
+- Persistent chat history
+- Contextual responses based on uploaded documents
+- Greek mythology-themed responses
+- Real-time message streaming
 
-- **Frame Processing**: System processes every 3rd frame for optimal performance
-- **Data Storage**: Maintains rolling buffer of 1000 recent data points
-- **Background Processing**: Camera tracking runs in separate thread
-- **Memory Management**: Automatic cleanup of old data and alerts
+### Interactive Widgets
+Each widget is designed to trigger specific learning modes:
+- **Video**: Educational content generation
+- **Audio**: Podcast/audio lesson creation  
+- **Flashcards**: Spaced repetition learning
+- **Quizzes**: Knowledge assessment
+- **Reports**: Analytics and progress tracking
+- **Hands-on**: Interactive exercises
 
-## Troubleshooting
+## 🔧 Technical Details
 
-### Common Issues
+- **Framework**: Streamlit
+- **Styling**: Custom CSS with Greek theme
+- **Animations**: Lottie files for enhanced UX
+- **Layout**: Responsive design with sidebar and main content areas
+- **State Management**: Streamlit session state for chat persistence
 
-1. **Camera Access**: Ensure camera permissions are granted
-2. **Dependencies**: Install all required packages from requirements.txt
-3. **Performance**: Reduce frame processing frequency if needed
-4. **Unicode Issues**: System automatically handles emoji display issues
+## 🤝 Contributing
 
-### Error Handling
-- All API endpoints include comprehensive error handling
-- Graceful degradation when camera is unavailable
-- Fallback mechanisms for failed emotion detection
+Feel free to contribute by:
+- Adding new Greek goddess themes
+- Improving the UI/UX design
+- Integrating with different RAG backends
+- Adding new learning widget types
+- Enhancing the story mode functionality
 
-## Example Flask Integration
+## 📜 License
 
-```python
-from flask import Flask, jsonify
-from adaptive_accessibility import FlaskAccessibilityAPI
+This project is open source and available under the MIT License.
 
-app = Flask(__name__)
-tracker = FlaskAccessibilityAPI()
+---
 
-@app.route('/api/status')
-def get_status():
-    data = tracker.get_real_time_data()
-    return jsonify(data)
-
-@app.route('/api/visualizations')
-def get_visualizations():
-    graphs = tracker.get_tiny_graphs_json()
-    return jsonify(graphs)
-
-if __name__ == '__main__':
-    app.run(debug=True)
-```
-
-This system represents a breakthrough in adaptive accessibility technology, providing real-time insights that can transform how we approach inclusive education and human-computer interaction.
-
-## Gemini Playground
-
-This is a Streamlit application that uses the Gemini API to perform various tasks on a document or a website.
-
-### Setup
-
-1.  **Install dependencies:**
-    ```bash
-    pip install -r requirements.txt
-    ```
-2.  **Set up your API key:**
-    - Create a file named `.env` in the root of the project.
-    - Add your Gemini API key to the `.env` file like this:
-      ```
-      GEMINI_API_KEY="YOUR_API_KEY_HERE"
-      ```
-
-### Running the App
-
-```bash
-streamlit run streamlit_app.py
-```
-
-This will open the Gemini Playground in your web browser.
+*May the wisdom of the gods guide your learning journey! 🏛️⚡*

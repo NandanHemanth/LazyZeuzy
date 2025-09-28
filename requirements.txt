@@ -24,10 +24,14 @@ ipykernel>=6.25.0
 
 # Streamlit and Gemini
 streamlit
+Pillow
+streamlit-lottie
 python-dotenv
 google-generativeai
 beautifulsoup4
 moviepy
+PyPDF2
+python-docx
 
 # Wan 2.2
 diffusers
