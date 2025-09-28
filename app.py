@@ -11,6 +11,15 @@ from hume import HumeClient
 from hume.tts import FormatMp3, PostedContextWithGenerationId, PostedUtterance
 # Note: Google Imagen API requires separate installation and setup
 from PIL import Image
+from reportlab.lib.pagesizes import letter, A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Table, TableStyle
+from reportlab.lib.colors import HexColor, black, white
+from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
+from reportlab.pdfgen import canvas
+import tempfile
+import json
 
 load_dotenv()
 
@@ -309,6 +318,230 @@ def show_flashcards_popup():
         st.session_state.show_flashcards = False
         st.rerun()
 
+def generate_comprehensive_pdf():
+    """Generate a comprehensive PDF study guide using ReportLab"""
+    if not st.session_state.document_text:
+        st.warning("Please upload a document first!")
+        return False
+
+    try:
+        model = setup_gemini()
+        if not model:
+            return False
+
+        # Generate all content sections using Gemini
+        with st.spinner("Generating comprehensive study content..."):
+
+            # 1. Generate Summary
+            summary_prompt = f"""
+            Create a comprehensive summary of the following document. Make it detailed but concise.
+
+            Document: {st.session_state.document_text[:3000]}...
+
+            Provide a well-structured summary covering all main points.
+            """
+            summary_response = model.generate_content(summary_prompt)
+            summary_content = summary_response.text
+
+            # 2. Generate MCQs
+            mcq_prompt = f"""
+            Create 10 multiple choice questions based on the document. Format as JSON:
+            [
+                {{
+                    "question": "Question text?",
+                    "options": ["A) Option 1", "B) Option 2", "C) Option 3", "D) Option 4"],
+                    "correct": "A",
+                    "explanation": "Explanation why this is correct"
+                }}
+            ]
+
+            Document: {st.session_state.document_text[:3000]}...
+            """
+            mcq_response = model.generate_content(mcq_prompt)
+            mcq_text = mcq_response.text
+
+            # Clean MCQ response
+            if "```json" in mcq_text:
+                mcq_text = mcq_text.split("```json")[1].split("```")[0]
+            mcqs = json.loads(mcq_text.strip())
+
+            # 3. Generate Detailed Explanations
+            explanations_prompt = f"""
+            Provide detailed explanations of the key concepts in the document.
+            Cover 5-7 main topics with in-depth analysis.
+
+            Document: {st.session_state.document_text[:3000]}...
+            """
+            explanations_response = model.generate_content(explanations_prompt)
+            explanations_content = explanations_response.text
+
+            # 4. Generate Thinking Questions
+            thinking_prompt = f"""
+            Create 8 thought-provoking questions about the document that encourage critical thinking and analysis.
+
+            Document: {st.session_state.document_text[:3000]}...
+
+            Format as numbered questions (1. Question... 2. Question...)
+            """
+            thinking_response = model.generate_content(thinking_prompt)
+            thinking_content = thinking_response.text
+
+            # 5. Generate Hands-on Activities
+            activities_prompt = f"""
+            Create 6 hands-on activities or exercises related to the document content.
+            Include practical applications, exercises, or projects.
+
+            Document: {st.session_state.document_text[:3000]}...
+
+            Format as numbered activities with clear instructions.
+            """
+            activities_response = model.generate_content(activities_prompt)
+            activities_content = activities_response.text
+
+            # 6. Generate Text Roadmap
+            roadmap_prompt = f"""
+            Create a visual text roadmap of the document using ASCII art, emojis, and clear structure.
+
+            Document: {st.session_state.document_text[:2000]}...
+            """
+            roadmap_response = model.generate_content(roadmap_prompt)
+            roadmap_content = roadmap_response.text
+
+        # Create PDF
+        with st.spinner("Creating PDF document..."):
+            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
+            doc = SimpleDocTemplate(temp_file.name, pagesize=A4)
+
+            # Get styles
+            styles = getSampleStyleSheet()
+
+            # Custom styles
+            title_style = ParagraphStyle(
+                'CustomTitle',
+                parent=styles['Heading1'],
+                fontSize=24,
+                spaceAfter=30,
+                alignment=TA_CENTER,
+                textColor=HexColor('#2E4057')
+            )
+
+            heading_style = ParagraphStyle(
+                'CustomHeading',
+                parent=styles['Heading2'],
+                fontSize=16,
+                spaceAfter=12,
+                spaceBefore=20,
+                textColor=HexColor('#4A90A4')
+            )
+
+            subheading_style = ParagraphStyle(
+                'CustomSubHeading',
+                parent=styles['Heading3'],
+                fontSize=14,
+                spaceAfter=8,
+                spaceBefore=15,
+                textColor=HexColor('#5C677D')
+            )
+
+            body_style = ParagraphStyle(
+                'CustomBody',
+                parent=styles['Normal'],
+                fontSize=11,
+                spaceAfter=6,
+                alignment=TA_JUSTIFY
+            )
+
+            # Build PDF content
+            story = []
+
+            # Title Page
+            story.append(Paragraph("📚 Comprehensive Study Guide", title_style))
+            story.append(Spacer(1, 20))
+            story.append(Paragraph("Generated by LazyZeuzy AI", styles['Normal']))
+            story.append(Spacer(1, 50))
+
+            # Table of Contents
+            story.append(Paragraph("📋 Table of Contents", heading_style))
+            toc_data = [
+                ["1. Document Summary", "Page 2"],
+                ["2. Learning Roadmap", "Page 3"],
+                ["3. Detailed Explanations", "Page 4"],
+                ["4. Multiple Choice Questions", "Page 5"],
+                ["5. Critical Thinking Questions", "Page 6"],
+                ["6. Hands-on Activities", "Page 7"]
+            ]
+
+            toc_table = Table(toc_data)
+            toc_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), HexColor('#E8F4F8')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), black),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 12),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('GRID', (0, 0), (-1, -1), 1, black)
+            ]))
+            story.append(toc_table)
+            story.append(PageBreak())
+
+            # 1. Summary Section
+            story.append(Paragraph("📄 Document Summary", heading_style))
+            story.append(Paragraph(summary_content, body_style))
+            story.append(PageBreak())
+
+            # 2. Roadmap Section
+            story.append(Paragraph("🗺️ Learning Roadmap", heading_style))
+            story.append(Paragraph(roadmap_content, body_style))
+            story.append(PageBreak())
+
+            # 3. Detailed Explanations
+            story.append(Paragraph("📖 Detailed Explanations", heading_style))
+            story.append(Paragraph(explanations_content, body_style))
+            story.append(PageBreak())
+
+            # 4. MCQs Section
+            story.append(Paragraph("❓ Multiple Choice Questions", heading_style))
+            for i, mcq in enumerate(mcqs, 1):
+                story.append(Paragraph(f"<b>Question {i}:</b> {mcq['question']}", subheading_style))
+                for option in mcq['options']:
+                    story.append(Paragraph(f"&nbsp;&nbsp;&nbsp;&nbsp;{option}", body_style))
+                story.append(Paragraph(f"<b>Answer:</b> {mcq['correct']}", body_style))
+                story.append(Paragraph(f"<b>Explanation:</b> {mcq['explanation']}", body_style))
+                story.append(Spacer(1, 15))
+            story.append(PageBreak())
+
+            # 5. Thinking Questions
+            story.append(Paragraph("🤔 Critical Thinking Questions", heading_style))
+            story.append(Paragraph(thinking_content, body_style))
+            story.append(PageBreak())
+
+            # 6. Hands-on Activities
+            story.append(Paragraph("🛠️ Hands-on Activities", heading_style))
+            story.append(Paragraph(activities_content, body_style))
+
+            # Build PDF
+            doc.build(story)
+
+            # Read the PDF file
+            with open(temp_file.name, 'rb') as pdf_file:
+                pdf_data = pdf_file.read()
+
+            # Add success message to chat
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": "📄 **Comprehensive Study Guide Generated!**\n\nI've created a detailed PDF study guide with:\n• Document Summary\n• Learning Roadmap\n• Detailed Explanations\n• 10 Multiple Choice Questions\n• Critical Thinking Questions\n• Hands-on Activities\n\nUse the download button below to get your PDF!"
+            })
+
+            # Store PDF data for download
+            st.session_state.pdf_data = pdf_data
+            st.session_state.show_pdf_download = True
+
+            return True
+
+    except Exception as e:
+        st.error(f"Error generating PDF: {str(e)}")
+        return False
+
 def main():
     st.set_page_config(page_title="LazyZeszy", page_icon="🤖", layout="wide")
 
@@ -459,7 +692,9 @@ def main():
             if st.button("🗺️ Roadmap"):
                 if generate_document_roadmap():
                     st.rerun()
-            st.button("Action 5")
+            if st.button("📄 Study Guide"):
+                if generate_comprehensive_pdf():
+                    st.rerun()
             st.button("Action 6")
         st.button("Full Width Action")
 
@@ -467,6 +702,20 @@ def main():
         lottie_json_2 = load_lottieurl(lottie_url_2)
         if lottie_json_2:
             st_lottie(lottie_json_2, height=200)
+
+    # Show PDF download button if PDF is ready
+    if st.session_state.get('show_pdf_download', False):
+        st.success("✅ Your comprehensive study guide PDF is ready!")
+        st.download_button(
+            label="📥 Download Study Guide PDF",
+            data=st.session_state.pdf_data,
+            file_name="comprehensive_study_guide.pdf",
+            mime="application/pdf",
+            use_container_width=True
+        )
+        if st.button("❌ Close Download"):
+            st.session_state.show_pdf_download = False
+            st.rerun()
 
     # Show flashcards popup if flashcards are generated
     if st.session_state.get('show_flashcards', False):
