@@ -1819,20 +1819,20 @@ def main():
         st.write("### Actions")
         b_col1, b_col2 = st.columns(2, gap="small")
         with b_col1:
-            if st.button("🎵 Audio Muse", use_container_width=True):
+            if st.button("🎵 AudioBook", use_container_width=True):
                 if synthesize_audio_from_document():
                     st.rerun()
-            if st.button("📚 Memory Cards", use_container_width=True):
+            if st.button("📚 FlashCard", use_container_width=True):
                 if generate_flashcards():
                     st.rerun()
-            if st.button("🧠 Trial of Wisdom", use_container_width=True):
+            if st.button("🧠 Quizz", use_container_width=True):
                 if generate_quiz():
                     st.rerun()
         with b_col2:
             if st.button("🗺️ Roadmap", use_container_width=True):
                 if generate_document_roadmap():
                     st.rerun()
-            if st.button("📄 Study Guide", use_container_width=True):
+            if st.button("📄 StudyGuide", use_container_width=True):
                 if generate_comprehensive_pdf():
                     st.rerun()
             if st.button("🎬 AI Video", help="Generate video with Veo 3.0 (requires billing)", use_container_width=True):
