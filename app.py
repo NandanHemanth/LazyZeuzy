@@ -304,24 +304,24 @@ def show_flashcards_popup():
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-        if st.button("⬅️ Previous", disabled=(current_card == 0)):
+        if st.button("⬅️ Previous", disabled=(current_card == 0), use_container_width=True):
             st.session_state.current_card = max(0, current_card - 1)
             st.session_state.show_answer = False
             st.rerun()
 
     with col2:
-        if show_answer and st.button("🔄 Hide Answer"):
+        if show_answer and st.button("🔄 Hide Answer", use_container_width=True):
             st.session_state.show_answer = False
             st.rerun()
 
     with col3:
-        if st.button("➡️ Next", disabled=(current_card >= len(flashcards) - 1)):
+        if st.button("➡️ Next", disabled=(current_card >= len(flashcards) - 1), use_container_width=True):
             st.session_state.current_card = min(len(flashcards) - 1, current_card + 1)
             st.session_state.show_answer = False
             st.rerun()
 
     with col4:
-        if st.button("🔀 Shuffle"):
+        if st.button("🔀 Shuffle", use_container_width=True):
             import random
             random.shuffle(st.session_state.flashcards)
             st.session_state.current_card = 0
