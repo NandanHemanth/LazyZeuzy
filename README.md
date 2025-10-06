@@ -1,4 +1,4 @@
-# 🏛️ Hera - Greek Goddesses RAG Assistant
+# LazyZeuzy - Beyond Google's NotebookLM
 
 A beautiful Streamlit application themed around Greek goddesses, featuring a RAG (Retrieval-Augmented Generation) chatbot named Hera with interactive learning tools.
 
