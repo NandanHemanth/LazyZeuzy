@@ -1,4 +1,4 @@
-# Adaptive Accessibility Tracker
+# LazyZeuzy - Beyond Google's NotebookLM
 
 A revolutionary AI-powered system for real-time emotion, stress, ADHD, and accessibility detection with analytics and visualization capabilities, ready for Flask integration.
 
